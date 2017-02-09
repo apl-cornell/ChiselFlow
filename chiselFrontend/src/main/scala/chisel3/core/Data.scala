@@ -37,23 +37,35 @@ object DataMirror {
 * Thus, an error will be thrown if these are used on bound Data
 */
 object Input {
-  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T = {
+  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T =
+    apply(source, UnknownLabel)
+
+  def apply[T<:Data](source: T, lbl: Label)(implicit compileOptions: CompileOptions): T = {
     val target = source.chiselCloneType
     Data.setFirrtlDirection(target, Direction.Input)
+    target.lbl_ = lbl
     Binding.bind(target, InputBinder, "Error: Cannot set as input ")
   }
 }
 object Output {
-  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T = {
+  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T =
+    apply(source, UnknownLabel)
+
+  def apply[T<:Data](source: T, lbl: Label)(implicit compileOptions: CompileOptions): T = {
     val target = source.chiselCloneType
     Data.setFirrtlDirection(target, Direction.Output)
+    target.lbl_ = lbl
     Binding.bind(target, OutputBinder, "Error: Cannot set as output ")
   }
 }
 object Flipped {
-  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T = {
+  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T =
+    apply(source, UnknownLabel)
+
+  def apply[T<:Data](source: T, lbl: Label)(implicit compileOptions: CompileOptions): T = {
     val target = source.chiselCloneType
     Data.setFirrtlDirection(target, Data.getFirrtlDirection(source).flip)
+    target.lbl_ = lbl
     Binding.bind(target, FlippedBinder, "Error: Cannot flip ")
   }
 }

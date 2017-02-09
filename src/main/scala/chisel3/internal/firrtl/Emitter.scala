@@ -8,6 +8,7 @@ import chisel3.core.Label
 import chisel3.core.Level
 import chisel3.core.UnknownLabel
 import chisel3.core.FunLabel
+import chisel3.core.Data
 
 private[chisel3] object Emitter {
   def emit(circuit: Circuit): String = new Emitter(circuit).toString
@@ -21,9 +22,25 @@ private class Emitter(circuit: Circuit) {
     case UnknownLabel => ""
     case FunLabel(fn, id) => s"{$fn ${id.getRef.fullName(ctx)}} "
   }
+
+  // This is used only in emitPort for the purpose of printing labels
+  // in Records
+  def emitData(id: Data, ctx: Component) = id match {
+    case idx: Record => emitRecord(idx, ctx)
+    case _ => id.toType
+  }
+
+  // This is exactly Record.toType, but it calls emitLabel
+  def emitRecord(r: Record, ctx: Component) = {
+    def eltPort(elt: Data): String = {
+      val flipStr: String = if(Data.isFirrtlFlipped(elt)) "flip " else ""
+      s"${flipStr}${elt.getRef.name} : ${emitLabel(elt.lbl,ctx)}${elt.toType}"
+    }
+    r.elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
+  }
     
-  private def emitPort(e: Port): String =
-    s"${e.dir} ${e.id.getRef.name} : ${e.id.toType}"
+  private def emitPort(e: Port, ctx:Component): String =
+    s"${e.dir} ${e.id.getRef.name} : ${emitData(e.id, ctx)}"
 
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
@@ -77,7 +94,7 @@ private class Emitter(circuit: Circuit) {
     val body = new StringBuilder
     withIndent {
       for (p <- m.ports)
-        body ++= newline + emitPort(p)
+        body ++= newline + emitPort(p,m)
       body ++= newline
 
       m match {
