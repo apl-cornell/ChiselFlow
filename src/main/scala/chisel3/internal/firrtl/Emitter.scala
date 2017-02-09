@@ -17,9 +17,9 @@ private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
   private def emitLabel(l: Label, ctx: Component): String = l match {
-    case Level(s) => s" {$s} "
+    case Level(s) => s"{$s} "
     case UnknownLabel => ""
-    case FunLabel(fn, id) => s" {$fn ${id.getRef.fullName(ctx)}} "
+    case FunLabel(fn, id) => s"{$fn ${id.getRef.fullName(ctx)}} "
   }
     
   private def emitPort(e: Port): String =
