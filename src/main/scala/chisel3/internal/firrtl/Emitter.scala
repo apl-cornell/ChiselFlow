@@ -4,6 +4,10 @@ package chisel3.internal.firrtl
 import chisel3._
 import chisel3.experimental._
 import chisel3.internal.sourceinfo.{NoSourceInfo, SourceLine}
+import chisel3.core.Label
+import chisel3.core.Level
+import chisel3.core.UnknownLabel
+import chisel3.core.FunLabel
 
 private[chisel3] object Emitter {
   def emit(circuit: Circuit): String = new Emitter(circuit).toString
@@ -12,12 +16,19 @@ private[chisel3] object Emitter {
 private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
+  private def emitLabel(l: Label, ctx: Component): String = l match {
+    case Level(s) => s" {$s} "
+    case UnknownLabel => ""
+    case FunLabel(fn, id) => s" {$fn ${id.getRef.fullName(ctx)}} "
+  }
+    
   private def emitPort(e: Port): String =
     s"${e.dir} ${e.id.getRef.name} : ${e.id.toType}"
+
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
       case e: DefPrim[_] => s"node ${e.name} = ${e.op.name}(${e.args.map(_.fullName(ctx)).mkString(", ")})"
-      case e: DefWire => s"wire ${e.name} : ${e.id.toType}"
+      case e: DefWire => s"wire ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}"
       case e: DefReg => s"reg ${e.name} : ${e.id.toType}, ${e.clock.fullName(ctx)}"
       case e: DefRegInit => s"reg ${e.name} : ${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
       case e: DefMemory => s"cmem ${e.name} : ${e.t.toType}[${e.size}]"

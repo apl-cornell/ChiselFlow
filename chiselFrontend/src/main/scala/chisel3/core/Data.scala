@@ -122,15 +122,22 @@ object Data {
   }
 }
 
+trait HasLabel {
+  def lbl : Label
+}
+
 /** This forms the root of the type system for wire data types. The data value
   * must be representable as some number (need not be known at Chisel compile
   * time) of bits, and must have methods to pack / unpack structured data to /
   * from bits.
   */
-abstract class Data extends HasId {
+abstract class Data extends HasId with HasLabel{
   // Return ALL elements at root of this type.
   // Contasts with flatten, which returns just Bits
   private[chisel3] def allElements: Seq[Element]
+
+  protected[chisel3] var lbl_ : Label = UnknownLabel
+  def lbl = lbl_
 
   private[core] def badConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit =
     throwException(s"cannot connect ${this} and ${that}")
@@ -269,23 +276,27 @@ abstract class Data extends HasId {
 }
 
 object Wire {
-  def apply[T <: Data](t: T): T = macro WireTransform.apply[T]
+
+  def apply[T <: Data, L <: Label](t: T, l: L): T = macro WireTransform.apply[T,L]
 
   // No source info since Scala macros don't yet support named / default arguments.
   def apply[T <: Data](dummy: Int = 0, init: T)(implicit compileOptions: CompileOptions): T =
-    do_apply(null.asInstanceOf[T], init)(UnlocatableSourceInfo, compileOptions)
+    do_apply(null.asInstanceOf[T], init, UnknownLabel)(UnlocatableSourceInfo, compileOptions)
 
   // No source info since Scala macros don't yet support named / default arguments.
   def apply[T <: Data](t: T, init: T)(implicit compileOptions: CompileOptions): T =
-    do_apply(t, init)(UnlocatableSourceInfo, compileOptions)
+    do_apply(t, init, UnknownLabel)(UnlocatableSourceInfo, compileOptions)
+  
+  def apply[T <: Data](t: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
+    do_apply(t, null.asInstanceOf[T], UnknownLabel)
 
-  def do_apply[T <: Data](t: T, init: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T = {
+  def do_apply[T <: Data](t: T, init: T, lbl: Label)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T = {
     val x = Reg.makeType(chisel3.core.ExplicitCompileOptions.NotStrict, t, null.asInstanceOf[T], init)
 
     // Bind each element of x to being a Wire
     Binding.bind(x, WireBinder(Builder.forcedModule), "Error: t")
 
-    pushCommand(DefWire(sourceInfo, x))
+    pushCommand(DefWire(sourceInfo, x, lbl))
     pushCommand(DefInvalid(sourceInfo, x.ref))
     if (init != null) {
       Binding.checkSynthesizable(init, s"'init' ($init)")

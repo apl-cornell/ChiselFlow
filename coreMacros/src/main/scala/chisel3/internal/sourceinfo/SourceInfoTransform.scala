@@ -8,6 +8,7 @@ package chisel3.internal.sourceinfo
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 import scala.reflect.macros.whitebox
+import chisel3.internal._
 
 
 /** Transforms a function call so that it can both provide implicit-style source information and
@@ -29,10 +30,11 @@ trait SourceInfoTransformMacro {
 
 class WireTransform(val c: Context) extends SourceInfoTransformMacro {
   import c.universe._
-  def apply[T: c.WeakTypeTag](t: c.Tree): c.Tree = {
+  def apply[T: c.WeakTypeTag, L: c.WeakTypeTag](t: c.Tree, l: c.Tree): c.Tree = {
     val tpe = weakTypeOf[T]
-    q"$thisObj.do_apply($t, null.asInstanceOf[$tpe])($implicitSourceInfo, $implicitCompileOptions)"
+    q"$thisObj.do_apply($t, null.asInstanceOf[$tpe],$l)($implicitSourceInfo, $implicitCompileOptions)"
   }
+  //def apply[T: c.WeakTypeTag](t: c.Tree): c.Tree = apply(t, UnknownLabel)
 }
 
 class UIntTransform(val c: Context) extends SourceInfoTransformMacro {
