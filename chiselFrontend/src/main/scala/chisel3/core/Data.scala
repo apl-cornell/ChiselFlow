@@ -337,6 +337,10 @@ sealed class Clock extends Element(Width(1)) {
   private[core] def cloneTypeWidth(width: Width): this.type = cloneType
   private[chisel3] def toType = "Clock"
 
+  // TODO: assuming the name of the bottom type. It would be better to figure 
+  // it out from the policy
+  override def lbl = Level("L")
+
   override def connect (that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit = that match {
     case _: Clock => super.connect(that)(sourceInfo, connectCompileOptions)
     case _ => super.badConnect(that)(sourceInfo)

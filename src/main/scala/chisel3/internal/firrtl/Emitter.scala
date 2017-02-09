@@ -38,9 +38,13 @@ private class Emitter(circuit: Circuit) {
     }
     r.elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }
-    
+   
+  // In practice, the emitLabel call which appears here directly is only for 
+  // clock and reset signals and it should just print the bottom label. The 
+  // emitData call will be used to print labels of io (which is most likely
+  // a bundle).
   private def emitPort(e: Port, ctx:Component): String =
-    s"${e.dir} ${e.id.getRef.name} : ${emitData(e.id, ctx)}"
+    s"${e.dir} ${e.id.getRef.name} : ${emitLabel(e.id.lbl,ctx)}${emitData(e.id, ctx)}"
 
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
