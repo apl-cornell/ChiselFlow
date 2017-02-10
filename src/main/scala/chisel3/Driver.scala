@@ -192,6 +192,7 @@ object Driver extends BackendCompilationUtilities {
     * @param args unused args
     */
   def main(args: Array[String]) {
+    println("hello from local copy")
     execute(Array("--help"), null)
   }
 

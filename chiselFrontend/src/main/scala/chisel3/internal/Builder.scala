@@ -214,7 +214,7 @@ private[chisel3] object Builder {
 
   def build[T <: Module](f: => T): Circuit = {
     dynamicContextVar.withValue(Some(new DynamicContext())) {
-      errors.info("Elaborating design...")
+      errors.info("(local copy) Elaborating design...")
       val mod = f
       mod.forceName(mod.name, globalNamespace)
       errors.checkpoint()

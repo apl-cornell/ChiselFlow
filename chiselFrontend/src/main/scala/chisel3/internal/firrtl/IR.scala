@@ -252,9 +252,9 @@ abstract class Definition extends Command {
 }
 case class DefPrim[T <: Data](sourceInfo: SourceInfo, id: T, op: PrimOp, args: Arg*) extends Definition
 case class DefInvalid(sourceInfo: SourceInfo, arg: Arg) extends Command
-case class DefWire(sourceInfo: SourceInfo, id: Data) extends Definition
-case class DefReg(sourceInfo: SourceInfo, id: Data, clock: Arg) extends Definition
-case class DefRegInit(sourceInfo: SourceInfo, id: Data, clock: Arg, reset: Arg, init: Arg) extends Definition
+case class DefWire(sourceInfo: SourceInfo, id: Data, lbl: Label) extends Definition
+case class DefReg(sourceInfo: SourceInfo, id: Data, clock: Arg, lbl: Label) extends Definition
+case class DefRegInit(sourceInfo: SourceInfo, id: Data, clock: Arg, reset: Arg, init: Arg, lbl: Label) extends Definition
 case class DefMemory(sourceInfo: SourceInfo, id: HasId, t: Data, size: Int) extends Definition
 case class DefSeqMemory(sourceInfo: SourceInfo, id: HasId, t: Data, size: Int) extends Definition
 case class DefMemPort[T <: Data](sourceInfo: SourceInfo, id: T, source: Node, dir: MemPortDirection, index: Arg, clock: Arg) extends Definition

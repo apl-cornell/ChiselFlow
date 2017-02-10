@@ -41,18 +41,22 @@ object Reg {
     * is a valid value. In those cases, you can either use the outType only Reg
     * constructor or pass in `null.asInstanceOf[T]`.
     */
-  def apply[T <: Data](t: T = null, next: T = null, init: T = null)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
+  def apply[T <: Data](t: T = null, next: T = null, init: T = null, lbl: Label = UnknownLabel)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
     // Scala macros can't (yet) handle named or default arguments.
-    do_apply(t, next, init)(sourceInfo, compileOptions)
+    do_apply(t, next, init, lbl)(sourceInfo, compileOptions)
 
   /** Creates a register without initialization (reset is ignored). Value does
     * not change unless assigned to (using the := operator).
     *
     * @param outType: data type for the register
     */
-  def apply[T <: Data](outType: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T = Reg[T](outType, null.asInstanceOf[T], null.asInstanceOf[T])(sourceInfo, compileOptions)
+  def apply[T <: Data](outType: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
+    Reg[T](outType, null.asInstanceOf[T], null.asInstanceOf[T], UnknownLabel)(sourceInfo, compileOptions)
+  
+  def apply[T <: Data](outType: T, lbl: Label)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
+    Reg[T](outType, null.asInstanceOf[T], null.asInstanceOf[T], lbl)(sourceInfo, compileOptions)
 
-  def do_apply[T <: Data](t: T, next: T, init: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions = chisel3.core.ExplicitCompileOptions.NotStrict): T = {
+  def do_apply[T <: Data](t: T, next: T, init: T, lbl: Label)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions = chisel3.core.ExplicitCompileOptions.NotStrict): T = {
     // TODO: write this in a way that doesn't need nulls (bad Scala style),
     // null.asInstanceOf[T], and two constructors. Using Option types are an
     // option, but introduces cumbersome syntax (wrap everything in a Some()).
@@ -67,10 +71,10 @@ object Reg {
     Binding.bind(x, RegBinder(Builder.forcedModule), "Error: t")
 
     if (init == null) {
-      pushCommand(DefReg(sourceInfo, x, clock))
+      pushCommand(DefReg(sourceInfo, x, clock, lbl))
     } else {
       Binding.checkSynthesizable(init, s"'init' ($init)")
-      pushCommand(DefRegInit(sourceInfo, x, clock, Node(x._parent.get.reset), init.ref))
+      pushCommand(DefRegInit(sourceInfo, x, clock, Node(x._parent.get.reset), init.ref, lbl))
     }
     if (next != null) {
       Binding.checkSynthesizable(next, s"'next' ($next)")

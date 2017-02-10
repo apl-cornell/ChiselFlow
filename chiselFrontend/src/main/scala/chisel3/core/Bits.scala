@@ -514,7 +514,7 @@ sealed class UInt private[core] (width: Width, lit: Option[ULit] = None)
     }
   }
   def do_fromBits(that: Bits)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): this.type = {
-    val res = Wire(this, null).asInstanceOf[this.type]
+    val res = Wire(this, null.asInstanceOf[this.type]).asInstanceOf[this.type]
     res := (that match {
       case u: UInt => u
       case _ => that.asUInt
@@ -658,7 +658,7 @@ sealed class SInt private[core] (width: Width, lit: Option[SLit] = None)
     }
   }
   def do_fromBits(that: Bits)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): this.type = {
-    val res = Wire(this, null).asInstanceOf[this.type]
+    val res = Wire(this, null.asInstanceOf[this.type]).asInstanceOf[this.type]
     res := (that match {
       case s: SInt => s
       case _ => that.asSInt
@@ -927,7 +927,7 @@ sealed class FixedPoint private (width: Width, val binaryPoint: BinaryPoint, lit
   override def do_asUInt(implicit sourceInfo: SourceInfo): UInt = pushOp(DefPrim(sourceInfo, UInt(this.width), AsUIntOp, ref))
   override def do_asSInt(implicit sourceInfo: SourceInfo): SInt = pushOp(DefPrim(sourceInfo, SInt(this.width), AsSIntOp, ref))
   def do_fromBits(that: Bits)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): this.type = {
-    val res = Wire(this, null).asInstanceOf[this.type]
+    val res = Wire(this, null.asInstanceOf[this.type]).asInstanceOf[this.type]
     res := (that match {
       case fp: FixedPoint => fp.asSInt.asFixedPoint(this.binaryPoint)
       case _ => that.asFixedPoint(this.binaryPoint)

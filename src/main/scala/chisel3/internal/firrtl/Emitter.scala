@@ -4,6 +4,11 @@ package chisel3.internal.firrtl
 import chisel3._
 import chisel3.experimental._
 import chisel3.internal.sourceinfo.{NoSourceInfo, SourceLine}
+import chisel3.core.Label
+import chisel3.core.Level
+import chisel3.core.UnknownLabel
+import chisel3.core.FunLabel
+import chisel3.core.Data
 
 private[chisel3] object Emitter {
   def emit(circuit: Circuit): String = new Emitter(circuit).toString
@@ -12,14 +17,41 @@ private[chisel3] object Emitter {
 private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
-  private def emitPort(e: Port): String =
-    s"${e.dir} ${e.id.getRef.name} : ${e.id.toType}"
+  private def emitLabel(l: Label, ctx: Component): String = l match {
+    case Level(s) => s"{$s} "
+    case UnknownLabel => ""
+    case FunLabel(fn, id) => s"{$fn ${id.getRef.fullName(ctx)}} "
+  }
+
+  // This is used only in emitPort for the purpose of printing labels
+  // in Records
+  def emitData(id: Data, ctx: Component) = id match {
+    case idx: Record => emitRecord(idx, ctx)
+    case _ => id.toType
+  }
+
+  // This is exactly Record.toType, but it calls emitLabel
+  def emitRecord(r: Record, ctx: Component) = {
+    def eltPort(elt: Data): String = {
+      val flipStr: String = if(Data.isFirrtlFlipped(elt)) "flip " else ""
+      s"${flipStr}${elt.getRef.name} : ${emitLabel(elt.lbl,ctx)}${elt.toType}"
+    }
+    r.elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
+  }
+   
+  // In practice, the emitLabel call which appears here directly is only for 
+  // clock and reset signals and it should just print the bottom label. The 
+  // emitData call will be used to print labels of io (which is most likely
+  // a bundle).
+  private def emitPort(e: Port, ctx:Component): String =
+    s"${e.dir} ${e.id.getRef.name} : ${emitLabel(e.id.lbl,ctx)}${emitData(e.id, ctx)}"
+
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
       case e: DefPrim[_] => s"node ${e.name} = ${e.op.name}(${e.args.map(_.fullName(ctx)).mkString(", ")})"
-      case e: DefWire => s"wire ${e.name} : ${e.id.toType}"
-      case e: DefReg => s"reg ${e.name} : ${e.id.toType}, ${e.clock.fullName(ctx)}"
-      case e: DefRegInit => s"reg ${e.name} : ${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
+      case e: DefWire => s"wire ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}"
+      case e: DefReg => s"reg ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}, ${e.clock.fullName(ctx)}"
+      case e: DefRegInit => s"reg ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
       case e: DefMemory => s"cmem ${e.name} : ${e.t.toType}[${e.size}]"
       case e: DefSeqMemory => s"smem ${e.name} : ${e.t.toType}[${e.size}]"
       case e: DefMemPort[_] => s"${e.dir} mport ${e.name} = ${e.source.fullName(ctx)}[${e.index.fullName(ctx)}], ${e.clock.fullName(ctx)}"
@@ -66,7 +98,7 @@ private class Emitter(circuit: Circuit) {
     val body = new StringBuilder
     withIndent {
       for (p <- m.ports)
-        body ++= newline + emitPort(p)
+        body ++= newline + emitPort(p,m)
       body ++= newline
 
       m match {
