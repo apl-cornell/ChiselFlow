@@ -8,6 +8,7 @@ import chisel3.core.Label
 import chisel3.core.Level
 import chisel3.core.UnknownLabel
 import chisel3.core.FunLabel
+import chisel3.core.HLevel
 import chisel3.core.Data
 
 private[chisel3] object Emitter {
@@ -21,6 +22,7 @@ private class Emitter(circuit: Circuit) {
     case Level(s) => s"{$s} "
     case UnknownLabel => ""
     case FunLabel(fn, id) => s"{$fn ${id.getRef.fullName(ctx)}} "
+    case HLevel(id) => s"{[[${id.getRef.fullName(ctx)}]]H} "
   }
 
   // This is used only in emitPort for the purpose of printing labels

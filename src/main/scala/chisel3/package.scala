@@ -26,6 +26,7 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val UnknownLabel = chisel3.core.UnknownLabel
   val Level = chisel3.core.Level
   val FunLabel = chisel3.core.FunLabel
+  val HLevel = chisel3.core.HLevel
 
   type Aggregate = chisel3.core.Aggregate
   val Vec = chisel3.core.Vec
