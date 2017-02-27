@@ -5,8 +5,10 @@ import chisel3._
 import chisel3.experimental._
 import chisel3.internal.sourceinfo.{NoSourceInfo, SourceLine}
 import chisel3.core.Label
-import chisel3.core.Level
 import chisel3.core.UnknownLabel
+import chisel3.core.LabelComp
+import chisel3.core.UnknownLabelComp
+import chisel3.core.Level
 import chisel3.core.FunLabel
 import chisel3.core.HLevel
 import chisel3.core.Data
@@ -19,10 +21,17 @@ private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
   private def emitLabel(l: Label, ctx: Component): String = l match {
-    case Level(s) => s"{$s} "
     case UnknownLabel => ""
-    case FunLabel(fn, id) => s"{$fn ${id.getRef.fullName(ctx)}} "
-    case HLevel(id) => s"{[[${id.getRef.fullName(ctx)}]]H} "
+    case Label(UnknownLabelComp, _) => ""
+    case Label(_, UnknownLabelComp) => ""
+    case _ =>  s"{${emitLabelComp(l.conf, ctx)} ${emitLabelComp(l.integ, ctx)}} "
+  }
+
+  private def emitLabelComp(l: LabelComp, ctx: Component): String = l match {
+    case Level(s) => s"$s"
+    case UnknownLabelComp => ""
+    case FunLabel(fn, id) => s"$fn ${id.getRef.fullName(ctx)}"
+    case HLevel(id) => s"[[${id.getRef.fullName(ctx)}]]H"
   }
 
   // This is used only in emitPort for the purpose of printing labels

@@ -143,10 +143,11 @@ extends HasId {
     * connections in and out of a Module may only go through `io` elements.
     */
   def io: Record
-  // TODO the bottom type is assumed to be "L", but it would be better to 
-  // determine it from the policy.
-  val clock = Port(Input(Clock(),Level("L")))
-  val reset = Port(Input(Bool(),Level("L")))
+  // TODO bot is assumed to be the least-restrictive label, but it would be 
+  // better to determine this from some policy
+  val bot = Label(Level("L"), Level("H"))
+  val clock = Port(Input(Clock(),bot))
+  val reset = Port(Input(Bool(),bot))
 
   private[chisel3] def addId(d: HasId) { _ids += d }
 
