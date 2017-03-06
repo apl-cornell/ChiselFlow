@@ -37,7 +37,7 @@ abstract class Element(private[core] val width: Width) extends Data {
   /** Return the binding for some bits. */
   def dir: Direction = binding.direction.getOrElse(Direction.Unspecified)
 
-  private[chisel3] final def allElements: Seq[Element] = Seq(this)
+  private[chisel3] def allElements: Seq[Element] = Seq(this)
   def widthKnown: Boolean = width.known
   def name: String = getRef.name
 

@@ -23,12 +23,15 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val Wire = chisel3.core.Wire
   val Clock = chisel3.core.Clock
   type Clock = chisel3.core.Clock
+  type Label = chisel3.core.Label
   val Label = chisel3.core.Label
   val UnknownLabel = chisel3.core.UnknownLabel
   val UnknownLabelComp = chisel3.core.UnknownLabelComp
   val Level = chisel3.core.Level
   val FunLabel = chisel3.core.FunLabel
   val HLevel = chisel3.core.HLevel
+  val Declassify = chisel3.core.Declassify
+  val Endorse = chisel3.core.Endorse
 
   type Aggregate = chisel3.core.Aggregate
   val Vec = chisel3.core.Vec

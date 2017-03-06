@@ -145,7 +145,7 @@ extends HasId {
   def io: Record
   // TODO bot is assumed to be the least-restrictive label, but it would be 
   // better to determine this from some policy
-  val bot = Label(Level("L"), Level("H"))
+  private[core] val bot = Label(Level("L"), Level("H"))
   val clock = Port(Input(Clock(),bot))
   val reset = Port(Input(Bool(),bot))
 

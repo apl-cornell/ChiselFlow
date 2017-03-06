@@ -20,6 +20,7 @@ private[chisel3] object Emitter {
 private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
+  // TODO clean this up by replacing uses of it with l.fullName
   private def emitLabel(l: Label, ctx: Component): String = l match {
     case UnknownLabel => ""
     case Label(UnknownLabelComp, _) => ""
@@ -35,7 +36,9 @@ private class Emitter(circuit: Circuit) {
   }
 
   // This is used only in emitPort for the purpose of printing labels
-  // in Records
+  // in Records. This is done instead of simply calling e.id.toType since clock 
+  // and reset will not have record types and their labels will not appear in 
+  // toType. There is probably a cleaner solution.
   def emitData(id: Data, ctx: Component) = id match {
     case idx: Record => emitRecord(idx, ctx)
     case _ => id.toType
@@ -55,6 +58,7 @@ private class Emitter(circuit: Circuit) {
   // emitData call will be used to print labels of io (which is most likely
   // a bundle).
   private def emitPort(e: Port, ctx:Component): String =
+    //s"${e.dir} ${e.id.getRef.name} : ${e.id.toType}"
     s"${e.dir} ${e.id.getRef.name} : ${emitLabel(e.id.lbl,ctx)}${emitData(e.id, ctx)}"
 
   private def emit(e: Command, ctx: Component): String = {

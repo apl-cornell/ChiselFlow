@@ -111,6 +111,18 @@ case class Index(imm: Arg, value: Arg) extends Arg {
   override def fullName(ctx: Component): String = s"${imm.fullName(ctx)}[${value.fullName(ctx)}]"
 }
 
+case class Declass(exp: Arg, lbl: Label) extends Arg {
+  def name: String = s"declassify(${exp.name} ${lbl.name})"
+  override def fullName(ctx: Component): String =
+    s"declassify(${exp.fullName(ctx)} ${lbl.fullName(ctx)})"
+}
+
+case class Endor(exp: Arg, lbl: Label) extends Arg {
+  def name: String = s"endorse(${exp.name} ${lbl.name})"
+  override def fullName(ctx: Component): String =
+    s"endorse(${exp.fullName(ctx)} ${lbl.fullName(ctx)})"
+}
+
 sealed trait Bound
 sealed trait NumericBound[T] extends Bound {
   val value: T

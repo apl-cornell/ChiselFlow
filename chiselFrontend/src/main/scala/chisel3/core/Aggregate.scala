@@ -372,7 +372,7 @@ abstract class Record extends Aggregate {
   private[chisel3] def toType = {
     def eltPort(elt: Data): String = {
       val flipStr: String = if(Data.isFirrtlFlipped(elt)) "flip " else ""
-      s"${flipStr}${elt.getRef.name} : ${elt.toType}"
+      s"${flipStr}${elt.getRef.name} : ${elt.lbl.name}${elt.toType}"
     }
     elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }

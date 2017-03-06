@@ -118,6 +118,7 @@ object Binding {
 
   // Excepts if any root element is unbound and thus not on the hardware graph
   def checkSynthesizable(target: Data, error_prelude: String): Unit = {
+
     // This is called if we support autoIOWrap
     def elementOfIO(element: Element): Boolean = {
       element._parent match {
@@ -133,7 +134,11 @@ object Binding {
           } else {
             // io.flatten eliminates Clock elements, so we need to use io.allElements
             val ports = x.io.allElements
-            val isIOElement = ports.contains(element) || element == x.clock || element == x.reset
+            val eprime = element match {
+              case (ex: DeclassifyE) => ex.expr
+              case _ => element
+            }
+            val isIOElement = ports.contains(eprime) || eprime== x.clock || eprime == x.reset
             isIOElement
           }
         }
