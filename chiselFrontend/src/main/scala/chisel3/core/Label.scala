@@ -23,7 +23,10 @@ class Label private[core](val conf: LabelComp, val integ: LabelComp) {
     s"{${conf.fullName(ctx)} ${integ.fullName(ctx)}} "
 }
 
-case object UnknownLabel extends Label(UnknownLabelComp, UnknownLabelComp)
+case object UnknownLabel extends Label(UnknownLabelComp, UnknownLabelComp) {
+  override def name = ""
+  override def fullName(ctx: Component) = ""
+}
 
 abstract class LabelComp {
   def name : String
