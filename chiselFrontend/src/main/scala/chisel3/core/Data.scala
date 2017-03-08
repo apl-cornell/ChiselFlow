@@ -391,8 +391,8 @@ object Wire {
   def apply[T <: Data, L <: Label](t: T, l: L): T = macro WireTransform.apply[T,L]
 
   // No source info since Scala macros don't yet support named / default arguments.
-  def apply[T <: Data](dummy: Int = 0, init: T)(implicit compileOptions: CompileOptions): T =
-    do_apply(null.asInstanceOf[T], init, UnknownLabel)(UnlocatableSourceInfo, compileOptions)
+  def apply[T <: Data](dummy: Int = 0, lbl: Label = UnknownLabel, init: T)(implicit compileOptions: CompileOptions): T =
+    do_apply(null.asInstanceOf[T], init, lbl)(UnlocatableSourceInfo, compileOptions)
 
   // No source info since Scala macros don't yet support named / default arguments.
   def apply[T <: Data](t: T, init: T)(implicit compileOptions: CompileOptions): T =

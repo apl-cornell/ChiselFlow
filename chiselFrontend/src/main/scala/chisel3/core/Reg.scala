@@ -52,9 +52,11 @@ object Reg {
     */
   def apply[T <: Data](outType: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
     Reg[T](outType, null.asInstanceOf[T], null.asInstanceOf[T], UnknownLabel)(sourceInfo, compileOptions)
-  
+ 
+  /*
   def apply[T <: Data](outType: T, lbl: Label)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): T =
     Reg[T](outType, null.asInstanceOf[T], null.asInstanceOf[T], lbl)(sourceInfo, compileOptions)
+  */
 
   def do_apply[T <: Data](t: T, next: T, init: T, lbl: Label)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions = chisel3.core.ExplicitCompileOptions.NotStrict): T = {
     // TODO: write this in a way that doesn't need nulls (bad Scala style),

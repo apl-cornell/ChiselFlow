@@ -49,6 +49,24 @@ case class HLevel(id: HasId) extends LabelComp {
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
 }
 
+object C {
+  def apply(l: Label): LabelComp = l match {
+    case Label(conf, _) => conf
+    case _ =>
+      throw new Exception("tried to conf project Bundle")
+      UnknownLabelComp
+  }
+}
+
+object I {
+  def apply(l: Label): LabelComp = l match {
+    case Label(_, integ) => integ
+    case _ =>
+      throw new Exception("tried to integ project Bundle")
+      UnknownLabelComp
+  }
+}
+
 // These are not parsed by sFIRRTL and are only used internally
 // case class JoinLabel(l: Label, r: Label) extends Label
 // case class MeetLabel(l: Label, r: Label) extends Label

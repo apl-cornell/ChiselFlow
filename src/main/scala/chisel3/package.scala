@@ -32,6 +32,11 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val HLevel = chisel3.core.HLevel
   val Declassify = chisel3.core.Declassify
   val Endorse = chisel3.core.Endorse
+  
+  // Components
+  val C = chisel3.core.C
+  val I = chisel3.core.I
+
 
   type Aggregate = chisel3.core.Aggregate
   val Vec = chisel3.core.Vec
