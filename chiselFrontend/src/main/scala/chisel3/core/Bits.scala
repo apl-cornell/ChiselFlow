@@ -530,6 +530,12 @@ trait UIntFactory {
   /** Create a UInt port with specified width. */
   def apply(width: Width): UInt = new UInt(width)
 
+  def apply(width: Width, lb: Label) : UInt = {
+    val ret = apply(width)
+    ret.lbl_ = lb
+    ret
+  }
+
    /** Create a UInt literal with specified width. */
   protected[chisel3] def Lit(value: BigInt, width: Width): UInt = {
     val lit = ULit(value, width)
@@ -673,6 +679,12 @@ trait SIntFactory {
   /** Create a SInt type or port with fixed width. */
   def apply(width: Width): SInt = new SInt(width)
 
+  def apply(width: Width, lb: Label) : SInt = {
+    val ret = apply(width)
+    ret.lbl_ = lb
+    ret
+  }
+
   /** Create a SInt with the specified range */
   def apply(range: Range): SInt = {
     apply(range.getWidth)
@@ -743,6 +755,12 @@ trait BoolFactory {
   /** Creates an empty Bool.
    */
   def apply(): Bool = new Bool()
+
+  def apply(lb: Label): Bool = {
+    val ret = apply()
+    ret.lbl_ = lb
+    ret
+  }
 
   /** Creates Bool literal.
    */
