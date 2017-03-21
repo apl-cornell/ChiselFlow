@@ -189,6 +189,7 @@ abstract class Data extends HasId with HasLabel{
   private[chisel3] def ref: Arg = if (isLit) litArg.get else lref
   private[core] def cloneTypeWidth(width: Width): this.type
   private[chisel3] def toType: String
+  private[chisel3] def toType(ctx:Component): String = toType
   private[core] def width: Width
   private[core] def legacyConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit
 

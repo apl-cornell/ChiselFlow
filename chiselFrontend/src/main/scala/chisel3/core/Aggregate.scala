@@ -377,6 +377,14 @@ abstract class Record extends Aggregate {
     elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }
 
+  private[chisel3] override def toType(ctx: Component) = {
+    def eltPort(elt: Data): String = {
+      val flipStr: String = if(Data.isFirrtlFlipped(elt)) "flip " else ""
+      s"${flipStr}${elt.getRef.name} : ${elt.lbl.fullName(ctx)}${elt.toType(ctx)}"
+    }
+    elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
+  }
+
   private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
 
   // NOTE: This sets up dependent references, it can be done before closing the Module

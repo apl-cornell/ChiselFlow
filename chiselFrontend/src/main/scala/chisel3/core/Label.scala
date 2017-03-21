@@ -40,9 +40,15 @@ case class Level(l: String) extends LabelComp {
   def name = l
   def fullName(ctx: Component) = l
 }
-case class FunLabel(fn: String, id: HasId) extends LabelComp {
-  def name = s"$fn ${id.getRef.name}"
-  def fullName(ctx: Component) = s"$fn ${id.getRef.fullName(ctx)}"
+case class FunLabel(fn: String, ids: List[HasId]) extends LabelComp {
+  def name = s"($fn ${ids map { _.getRef.name } mkString(" ")})"
+  def fullName(ctx: Component) = 
+    s"($fn ${ids map { _.getRef.fullName(ctx) } mkString(" ")})"
+}
+
+object FunLabel{
+  def apply(fname: String, ids: HasId*) =
+    new FunLabel(fname, ids.toList)
 }
 case class HLevel(id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]H"
