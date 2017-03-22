@@ -19,8 +19,11 @@ class Label private[core](val conf: LabelComp, val integ: LabelComp) {
     case _ => false
   }
   def name = s"{${conf.name}, ${integ.name}} "
-  def fullName(ctx: Component) =
-    s"{${conf.fullName(ctx)} ${integ.fullName(ctx)}} "
+  def fullName(ctx: Component) = (conf, integ) match {
+    case (UnknownLabelComp, _) => ""
+    case (_, UnknownLabelComp) => ""
+    case _ => s"{${conf.fullName(ctx)}, ${integ.fullName(ctx)}} "
+  }
 }
 
 case object UnknownLabel extends Label(UnknownLabelComp, UnknownLabelComp) {

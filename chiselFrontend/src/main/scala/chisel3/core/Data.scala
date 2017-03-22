@@ -341,7 +341,10 @@ class DeclassifyE(val expr: Element, override val lbl: Label) extends Element(ex
 }
 
 object Endorse {
-  def apply(expr: Data, lbl: Label) = new Endorse(expr, lbl)
+  def apply(expr: Data, lbl: Label) = expr match {
+    case (e: Element) => new EndorseE(e, lbl)
+    case _ => new Endorse(expr, lbl)
+  }
 }
 
 class Endorse(val expr: Data, override val lbl: Label) extends Data {

@@ -20,36 +20,15 @@ private[chisel3] object Emitter {
 private class Emitter(circuit: Circuit) {
   override def toString: String = res.toString
 
-  // TODO(never) clean this up by replacing uses of it with l.fullName
-  private def emitLabel(l: Label, ctx: Component): String = l match {
-    case UnknownLabel => ""
-    case Label(UnknownLabelComp, _) => ""
-    case Label(_, UnknownLabelComp) => ""
-    case _ =>  s"{${emitLabelComp(l.conf, ctx)}, ${emitLabelComp(l.integ, ctx)}} "
-  }
-
-  private def emitLabelComp(l: LabelComp, ctx: Component): String = l match {
-    case Level(s) => s"$s"
-    case UnknownLabelComp => ""
-    case lx: FunLabel => lx.fullName(ctx)
-    case lx: HLevel => lx.fullName(ctx)
-  }
-
-  // In practice, the emitLabel call which appears here directly is only for 
-  // clock and reset signals and it should just print the bottom label. The 
-  // emitData call will be used to print labels of io (which is most likely
-  // a bundle).
   private def emitPort(e: Port, ctx:Component): String =
-    //s"${e.dir} ${e.id.getRef.name} : ${e.id.toType}"
-    //s"${e.dir} ${e.id.getRef.name} : ${emitLabel(e.id.lbl,ctx)}${emitData(e.id, ctx)}"
-    s"${e.dir} ${e.id.getRef.name} : ${emitLabel(e.id.lbl,ctx)}${e.id.toType(ctx)}"
+    s"${e.dir} ${e.id.getRef.name} : ${e.id.lbl.fullName(ctx)}${e.id.toType(ctx)}"
 
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
       case e: DefPrim[_] => s"node ${e.name} = ${e.op.name}(${e.args.map(_.fullName(ctx)).mkString(", ")})"
-      case e: DefWire => s"wire ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}"
-      case e: DefReg => s"reg ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}, ${e.clock.fullName(ctx)}"
-      case e: DefRegInit => s"reg ${e.name} : ${emitLabel(e.lbl,ctx)}${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
+      case e: DefWire => s"wire ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}"
+      case e: DefReg => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)}"
+      case e: DefRegInit => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
       case e: DefMemory => s"cmem ${e.name} : ${e.t.toType}[${e.size}]"
       case e: DefSeqMemory => s"smem ${e.name} : ${e.t.toType}[${e.size}]"
       case e: DefMemPort[_] => s"${e.dir} mport ${e.name} = ${e.source.fullName(ctx)}[${e.index.fullName(ctx)}], ${e.clock.fullName(ctx)}"
