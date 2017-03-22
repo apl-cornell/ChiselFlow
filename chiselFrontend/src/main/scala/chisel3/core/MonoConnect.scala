@@ -55,36 +55,19 @@ object MonoConnect {
   * during the recursive decent and then rethrow them with extra information added.
   * This gives the user a 'path' to where in the connections things went wrong.
   */
-  def connect(sourceInfo: SourceInfo, connectCompileOptions: CompileOptions, sink: Data, source: Data, context_mod: Module): Unit = {
-    def connect_(inDeclass: Boolean, inEndorse: Boolean, lbld: Label, lble: Label)(sourceInfo: SourceInfo, connectCompileOptions: CompileOptions, sink: Data, source: Data, context_mod: Module) : Unit = (sink, source) match {
-      // Handle element case (root case). Also catches DeclassifyE / EndorseE
+  def connect(sourceInfo: SourceInfo, connectCompileOptions: CompileOptions, sink: Data, source: Data, context_mod: Module): Unit =
+    (sink, source) match {
+      // Handle element case (root case)
       case (sink_e: Element, source_e: Element) => {
-        val source_d = if(inDeclass) new DeclassifyE(source_e, lbld) else source_e
-        val source_de = if(inEndorse) new EndorseE(source_d, lble) else source_d
-        /*
-        source_de match {
-          case (sx: DeclassifyE) =>
-            elemConnect(sourceInfo, connectCompileOptions, sink_e, sx.expr, context_mod)
-          case _ =>
-        }
-        */
-        elemConnect(sourceInfo, connectCompileOptions, sink_e, source_de, context_mod)
-        // TODO(twigg): Verify the element-level claEsses are connectable
-      }
-      // Handle Declassify
-      case (sink_d: Data, source_d: Declassify) => {
-        connect_(true, inEndorse, source_d.lbl, lble)(sourceInfo, connectCompileOptions, sink_d, source_d.expr, context_mod)
-      }
-      // Handle Endorse
-      case (sink_e: Data, source_e: Endorse) => {
-        connect_(inDeclass, true, lbld, source_e.lbl)(sourceInfo, connectCompileOptions, sink_e, source_e.expr, context_mod)
+        elemConnect(sourceInfo, connectCompileOptions, sink_e, source_e, context_mod)
+        // TODO(twigg): Verify the element-level classes are connectable
       }
       // Handle Vec case
       case (sink_v: Vec[Data @unchecked], source_v: Vec[Data @unchecked]) => {
         if(sink_v.length != source_v.length) { throw MismatchedVecException }
         for(idx <- 0 until sink_v.length) {
           try {
-            connect_(inDeclass,inEndorse,lbld,lble)(sourceInfo, connectCompileOptions, sink_v(idx), source_v(idx), context_mod)
+            connect(sourceInfo, connectCompileOptions, sink_v(idx), source_v(idx), context_mod)
           } catch {
             case MonoConnectException(message) => throw MonoConnectException(s"($idx)$message")
           }
@@ -96,7 +79,7 @@ object MonoConnect {
         for((field, sink_sub) <- sink_r.elements) {
           try {
             source_r.elements.get(field) match {
-              case Some(source_sub) => connect_(inDeclass,inEndorse,lbld,lble)(sourceInfo, connectCompileOptions, sink_sub, source_sub, context_mod)
+              case Some(source_sub) => connect(sourceInfo, connectCompileOptions, sink_sub, source_sub, context_mod)
               case None => {
                 if (connectCompileOptions.connectFieldsMustMatch) {
                   throw MissingFieldException(field)
@@ -111,8 +94,6 @@ object MonoConnect {
       // Sink and source are different subtypes of data so fail
       case (sink, source) => throw MismatchedException(sink.toString, source.toString)
     }
-    connect_(false,false, UnknownLabel, UnknownLabel)(sourceInfo, connectCompileOptions, sink, source, context_mod)
-  }
 
   // This function (finally) issues the connection operation
   private def issueConnect(sink: Element, source: Element)(implicit sourceInfo: SourceInfo): Unit = {

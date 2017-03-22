@@ -26,6 +26,12 @@ private class Emitter(circuit: Circuit) {
   private def emit(e: Command, ctx: Component): String = {
     val firrtlLine = e match {
       case e: DefPrim[_] => s"node ${e.name} = ${e.op.name}(${e.args.map(_.fullName(ctx)).mkString(", ")})"
+      case e: DefDeclass[_] => 
+        val lbl_s = e.lbl.fullName(ctx)
+        s"node ${e.name} ${lbl_s} = declassify(${e.arg.fullName(ctx)}, ${lbl_s})"
+      case e: DefEndorse[_] => 
+        val lbl_s = e.lbl.fullName(ctx)
+        s"node ${e.name} ${lbl_s} = endorse(${e.arg.fullName(ctx)}, ${lbl_s})"
       case e: DefWire => s"wire ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}"
       case e: DefReg => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)}"
       case e: DefRegInit => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"

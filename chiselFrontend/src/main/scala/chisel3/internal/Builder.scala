@@ -197,6 +197,19 @@ private[chisel3] object Builder {
     pushCommand(cmd).id
   }
 
+  // Special case these ops since they take label args which are not data
+  def pushDeclass[T <: Data](cmd: DefDeclass[T]): T = {
+    // Bind each element of the returned Data to being a Op
+    Binding.bind(cmd.id, OpBinder(forcedModule), "Error: During op creation, fresh result")
+    pushCommand(cmd).id
+  }
+
+  def pushEndorse[T <: Data](cmd: DefEndorse[T]): T = {
+    // Bind each element of the returned Data to being a Op
+    Binding.bind(cmd.id, OpBinder(forcedModule), "Error: During op creation, fresh result")
+    pushCommand(cmd).id
+  }
+
   def errors: ErrorLog = dynamicContext.errors
   def error(m: => String): Unit = errors.error(m)
   def warning(m: => String): Unit = errors.warning(m)

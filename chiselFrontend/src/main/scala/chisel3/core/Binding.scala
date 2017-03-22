@@ -134,11 +134,7 @@ object Binding {
           } else {
             // io.flatten eliminates Clock elements, so we need to use io.allElements
             val ports = x.io.allElements
-            val eprime = element match {
-              case (ex: DeclassifyE) => ex.expr
-              case _ => element
-            }
-            val isIOElement = ports.contains(eprime) || eprime== x.clock || eprime == x.reset
+            val isIOElement = ports.contains(element) || element == x.clock || element == x.reset
             isIOElement
           }
         }
