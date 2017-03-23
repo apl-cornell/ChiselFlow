@@ -54,8 +54,8 @@ class InstTransform(val c: Context) extends SourceInfoTransformMacro {
 
 class MemTransform(val c: Context) extends SourceInfoTransformMacro {
   import c.universe._
-  def apply[T: c.WeakTypeTag](size: c.Tree, t: c.Tree): c.Tree = {
-    q"$thisObj.do_apply($size, $t)($implicitSourceInfo)"
+  def apply[T: c.WeakTypeTag](size: c.Tree, t: c.Tree, l: c.Tree): c.Tree = {
+    q"$thisObj.do_apply($size, $t, $l)($implicitSourceInfo)"
   }
 }
 
