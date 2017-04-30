@@ -13,21 +13,22 @@ import chisel3.core.ExplicitCompileOptions.NotStrict
 
 object Mem {
   @deprecated("Mem argument order should be size, t; this will be removed by the official release", "chisel3")
-  def apply[T <: Data](t: T, size: Int): Mem[T] = do_apply(size, t)(UnlocatableSourceInfo)
+  def apply[T <: Data](t: T, size: Int, lbl: Label): Mem[T] = do_apply(size, t, lbl)(UnlocatableSourceInfo)
 
   /** Creates a combinational-read, sequential-write [[Mem]].
     *
     * @param size number of elements in the memory
     * @param t data type of memory element
     */
-  def apply[T <: Data](size: Int, t: T): Mem[T] = macro MemTransform.apply[T]
-  def do_apply[T <: Data](size: Int, t: T)(implicit sourceInfo: SourceInfo): Mem[T] = {
+  def apply[T <: Data](size: Int, t: T): Mem[T] = do_apply(size, t, UnknownLabel)(UnlocatableSourceInfo)
+  def apply[T <: Data](size: Int, t: T, lbl: Label): Mem[T] = macro MemTransform.apply[T]
+  def do_apply[T <: Data](size: Int, t: T, lbl: Label)(implicit sourceInfo: SourceInfo): Mem[T] = {
     val mt  = t.chiselCloneType
     Binding.bind(mt, NoDirectionBinder, "Error: fresh t")
     // TODO(twigg): Remove need for this Binding
 
     val mem = new Mem(mt, size)
-    pushCommand(DefMemory(sourceInfo, mem, mt, size)) // TODO multi-clock
+    pushCommand(DefMemory(sourceInfo, mem, mt, lbl, size)) // TODO multi-clock
     mem
   }
 }
@@ -113,22 +114,23 @@ sealed class Mem[T <: Data](t: T, length: Int) extends MemBase(t, length)
 
 object SeqMem {
   @deprecated("SeqMem argument order should be size, t; this will be removed by the official release", "chisel3")
-  def apply[T <: Data](t: T, size: Int): SeqMem[T] = do_apply(size, t)(DeprecatedSourceInfo)
+  def apply[T <: Data](t: T, size: Int, lbl: Label): SeqMem[T] = do_apply(size, t, lbl)(DeprecatedSourceInfo)
 
   /** Creates a sequential-read, sequential-write [[SeqMem]].
     *
     * @param size number of elements in the memory
     * @param t data type of memory element
     */
-  def apply[T <: Data](size: Int, t: T): SeqMem[T] = macro MemTransform.apply[T]
+  def apply[T <: Data](size: Int, t: T, lbl: Label): SeqMem[T] = macro MemTransform.apply[T]
+  def apply[T <: Data](size: Int, t: T): SeqMem[T] = do_apply(size, t, UnknownLabel)(DeprecatedSourceInfo)
 
-  def do_apply[T <: Data](size: Int, t: T)(implicit sourceInfo: SourceInfo): SeqMem[T] = {
+  def do_apply[T <: Data](size: Int, t: T, lbl: Label)(implicit sourceInfo: SourceInfo): SeqMem[T] = {
     val mt  = t.chiselCloneType
     Binding.bind(mt, NoDirectionBinder, "Error: fresh t")
     // TODO(twigg): Remove need for this Binding
 
     val mem = new SeqMem(mt, size)
-    pushCommand(DefSeqMemory(sourceInfo, mem, mt, size)) // TODO multi-clock
+    pushCommand(DefSeqMemory(sourceInfo, mem, mt, lbl, size)) // TODO multi-clock
     mem
   }
 }

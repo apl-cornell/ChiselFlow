@@ -58,6 +58,11 @@ case class HLevel(id: HasId) extends LabelComp {
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
 }
 
+case class VLabel(id: HasId) extends LabelComp {
+  def name = s"[[${id.getRef.name}]]V"
+  def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]V"
+}
+
 object C {
   def apply(l: Label): LabelComp = l match {
     case Label(conf, _) => conf

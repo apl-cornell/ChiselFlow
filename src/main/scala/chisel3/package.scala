@@ -30,6 +30,7 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val Level = chisel3.core.Level
   val FunLabel = chisel3.core.FunLabel
   val HLevel = chisel3.core.HLevel
+  val VLabel = chisel3.core.VLabel
   val Declassify = chisel3.core.Declassify
   val Endorse = chisel3.core.Endorse
   
