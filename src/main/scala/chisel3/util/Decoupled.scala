@@ -15,10 +15,10 @@ import chisel3.core.ExplicitCompileOptions.NotStrict
   * uses the flipped interface. Actual semantics of ready/valid are
   * enforced via use of concrete subclasses.
   */
-abstract class ReadyValidIO[+T <: Data](gen: T) extends Bundle
+abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: Label=UnknownLabel) extends Bundle
 {
-  val ready = Input(Bool())
-  val valid = Output(Bool())
+  val ready = Input(Bool(), rdyl)
+  val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
 }
 
@@ -70,16 +70,17 @@ object ReadyValidIO {
   * to accept the data this cycle. No requirements are placed on the signaling
   * of ready or valid.
   */
-class DecoupledIO[+T <: Data](gen: T) extends ReadyValidIO[T](gen)
+class DecoupledIO[+T <: Data](gen: T, rdyl: Label, vall: Label) extends ReadyValidIO[T](gen, rdyl, vall)
 {
-  override def cloneType: this.type = new DecoupledIO(gen).asInstanceOf[this.type]
+  override def cloneType: this.type = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+  def this(gen: T) = this(gen, UnknownLabel, UnknownLabel)
 }
 
 /** This factory adds a decoupled handshaking protocol to a data bundle. */
 object Decoupled
 {
   /** Wraps some Data with a DecoupledIO interface. */
-  def apply[T <: Data](gen: T): DecoupledIO[T] = new DecoupledIO(gen)
+  def apply[T <: Data](gen: T, rdyl: Label = UnknownLabel, vall: Label = UnknownLabel): DecoupledIO[T] = new DecoupledIO(gen, rdyl, vall)
 
   /** Downconverts an IrrevocableIO output to a DecoupledIO, dropping guarantees of irrevocability.
     *
