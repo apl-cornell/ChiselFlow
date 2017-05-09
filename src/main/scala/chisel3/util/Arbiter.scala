@@ -15,10 +15,11 @@ import chisel3.core.ExplicitCompileOptions.NotStrict
   * @param gen data type
   * @param n number of inputs
   */
-class ArbiterIO[T <: Data](gen: T, n: Int) extends Bundle {
-  val in  = Flipped(Vec(n, Decoupled(gen)))
-  val out = Decoupled(gen)
-  val chosen = Output(UInt(log2Up(n).W))
+class ArbiterIO[T <: Data](gen: T, n: Int, inl: Label, outl: Label) extends Bundle {
+  val in  = Flipped(Vec(n, Decoupled(gen, inl, inl)))
+  val out = Decoupled(gen, outl, outl)
+  val chosen = Output(UInt(log2Up(n).W), outl)
+  def this(gen: T, n: Int) = this(gen, n, UnknownLabel, UnknownLabel)
 }
 
 /** Arbiter Control determining which producer has access
@@ -31,10 +32,11 @@ private object ArbiterCtrl {
   }
 }
 
-abstract class LockingArbiterLike[T <: Data](gen: T, n: Int, count: Int, needsLock: Option[T => Bool]) extends Module {
+abstract class LockingArbiterLike[T <: Data](gen: T, n: Int, count: Int,
+    needsLock: Option[T => Bool], inl: Label, outl: Label) extends Module {
   protected def grant: Seq[Bool]
   protected def choice: UInt
-  val io = IO(new ArbiterIO(gen, n))
+  val io = IO(new ArbiterIO(gen, n, inl, outl))
 
   io.chosen := choice
   io.out.valid := io.in(io.chosen).valid
@@ -58,10 +60,14 @@ abstract class LockingArbiterLike[T <: Data](gen: T, n: Int, count: Int, needsLo
     for ((in, g) <- io.in zip grant)
       in.ready := g && io.out.ready
   }
+
+  def this(gen: T, n: Int, count: Int, needsLock: Option[T=>Bool])
+    = this(gen, n, count, needsLock, UnknownLabel, UnknownLabel)
 }
 
-class LockingRRArbiter[T <: Data](gen: T, n: Int, count: Int, needsLock: Option[T => Bool] = None)
-    extends LockingArbiterLike[T](gen, n, count, needsLock) {
+class LockingRRArbiter[T <: Data](gen: T, n: Int, count: Int, 
+    inl: Label, outl: Label, needsLock: Option[T => Bool])
+    extends LockingArbiterLike[T](gen, n, count, needsLock, inl, outl) {
   private lazy val lastGrant = RegEnable(io.chosen, io.out.fire())
   private lazy val grantMask = (0 until n).map(_.asUInt > lastGrant)
   private lazy val validMask = io.in zip grantMask map { case (in, g) => in.valid && g }
@@ -76,15 +82,22 @@ class LockingRRArbiter[T <: Data](gen: T, n: Int, count: Int, needsLock: Option[
     when (io.in(i).valid) { choice := i.asUInt }
   for (i <- n-1 to 1 by -1)
     when (validMask(i)) { choice := i.asUInt }
+
+    def this(gen: T, n: Int, count: Int, needsLock: Option[T => Bool ] = None) =
+      this(gen, n, count, UnknownLabel, UnknownLabel, needsLock)
 }
 
-class LockingArbiter[T <: Data](gen: T, n: Int, count: Int, needsLock: Option[T => Bool] = None)
-    extends LockingArbiterLike[T](gen, n, count, needsLock) {
+class LockingArbiter[T <: Data](gen: T, n: Int, count: Int, 
+  inl: Label, outl: Label, needsLock: Option[T => Bool])
+    extends LockingArbiterLike[T](gen, n, count, needsLock, inl, outl) {
   protected def grant: Seq[Bool] = ArbiterCtrl(io.in.map(_.valid))
 
   override protected lazy val choice = Wire(init=(n-1).asUInt)
   for (i <- n-2 to 0 by -1)
     when (io.in(i).valid) { choice := i.asUInt }
+
+  def this(gen: T, n: Int, count: Int, needsLock: Option[T => Bool] = None) =
+    this(gen, n, count, UnknownLabel, UnknownLabel, needsLock)
 }
 
 /** Hardware module that is used to sequence n producers into 1 consumer.
@@ -97,7 +110,10 @@ class LockingArbiter[T <: Data](gen: T, n: Int, count: Int, needsLock: Option[T 
   * consumer.io.in <> arb.io.out
   * }}}
   */
-class RRArbiter[T <: Data](gen:T, n: Int) extends LockingRRArbiter[T](gen, n, 1)
+class RRArbiter[T <: Data](gen:T, n: Int, inl: Label, outl: Label)
+  extends LockingRRArbiter[T](gen, n, 1, inl, outl, None) {
+    def this(gen: T, n: Int) = this(gen, n, UnknownLabel, UnknownLabel)
+}
 
 /** Hardware module that is used to sequence n producers into 1 consumer.
   * Priority is given to lower producer.
