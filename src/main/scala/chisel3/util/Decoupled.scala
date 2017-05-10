@@ -19,7 +19,10 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
 {
   val ready = Input(Bool(), rdyl)
   val valid = Output(Bool(), vall)
-  val bits  = Output(gen.chiselCloneType)
+  // Disappointing hack to get reflection-generated names 
+  // to appear in dependent types constructed with the version
+  // of this thing where labels get down-propagated from the bits.
+  val bits  = gen //Output(gen.chiselCloneType)
 }
 
 object ReadyValidIO {

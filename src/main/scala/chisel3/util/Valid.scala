@@ -10,18 +10,17 @@ import chisel3._
 import chisel3.core.ExplicitCompileOptions.NotStrict
 
 /** An Bundle containing data and a signal determining if it is valid */
-class Valid[+T <: Data](gen: T, vall: Label) extends Bundle
+class Valid[+T <: Data](gen: T, vall: Label=UnknownLabel) extends Bundle
 {
   val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
   def fire(dummy: Int = 0): Bool = valid
-  override def cloneType: this.type = Valid(gen).asInstanceOf[this.type]
-  def this(gen: T) = this(gen, UnknownLabel)
+  override def cloneType: this.type = Valid(gen, vall).asInstanceOf[this.type]
 }
 
 /** Adds a valid protocol to any interface */
 object Valid {
-  def apply[T <: Data](gen: T, vall: Label = UnknownLabel): Valid[T] = new Valid(gen)
+  def apply[T <: Data](gen: T, lbl: Label=UnknownLabel): Valid[T] = new Valid(gen, lbl)
 }
 
 /** A hardware module that delays data coming down the pipeline
