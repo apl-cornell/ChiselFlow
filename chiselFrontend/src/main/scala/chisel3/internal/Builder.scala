@@ -3,7 +3,7 @@
 package chisel3.internal
 
 import scala.util.DynamicVariable
-import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.collection.mutable.{ArrayBuffer, HashMap,Set}
 
 import chisel3._
 import core._
@@ -78,6 +78,13 @@ private[chisel3] trait HasId extends InstanceId {
     case _ => false
   }
 
+  // This is used so that clones don't prevent expressions in labels from
+  // getting the right name
+  private[chisel3] var sharedIDs = new scala.collection.mutable.HashSet[HasId]()
+
+  def copyIDs(that:this.type): Unit =
+    that.sharedIDs = sharedIDs
+
   // Facilities for 'suggesting' a name to this.
   // Post-name hooks called to carry the suggestion to other candidates as needed
   private var suggested_name: Option[String] = None
@@ -101,7 +108,14 @@ private[chisel3] trait HasId extends InstanceId {
     }
 
   private var _ref: Option[Arg] = None
-  private[chisel3] def setRef(imm: Arg): Unit = _ref = Some(imm)
+  def idGood(ref: Option[Arg]) = !(_ref.isEmpty || (_ref.get.name contains "_T_"))
+  private[chisel3] def setRef(imm: Arg): Unit = {
+    _ref = Some(imm)
+    (sharedIDs - this) foreach { thatId =>
+      //if(idGood(_ref) && !idGood(thatId._ref)) thatId.setRef(imm)
+      if(_ref != thatId._ref) thatId.setRef(imm)
+    }
+  }
   private[chisel3] def setRef(parent: HasId, name: String): Unit = setRef(Slot(Node(parent), name))
   private[chisel3] def setRef(parent: HasId, index: Int): Unit = setRef(Index(Node(parent), ILit(index)))
   private[chisel3] def setRef(parent: HasId, index: UInt): Unit = setRef(Index(Node(parent), index.ref))

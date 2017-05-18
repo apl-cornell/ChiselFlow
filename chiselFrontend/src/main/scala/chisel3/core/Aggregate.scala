@@ -10,6 +10,7 @@ import chisel3.internal._
 import chisel3.internal.Builder.pushCommand
 import chisel3.internal.firrtl._
 import chisel3.internal.sourceinfo._
+import scala.collection.mutable.HashSet
 
 /** An abstract class for data types that solely consist of (are an aggregate
   * of) other Data objects.
@@ -474,11 +475,15 @@ class Bundle extends Record {
     val constructor = this.getClass.getConstructors.head
     try {
       val args = Seq.fill(constructor.getParameterTypes.size)(null)
-      constructor.newInstance(args:_*).asInstanceOf[this.type]
+      val ret = constructor.newInstance(args:_*).asInstanceOf[this.type]
+      copyIDs(ret)
+      ret
     } catch {
       case e: java.lang.reflect.InvocationTargetException if e.getCause.isInstanceOf[java.lang.NullPointerException] =>
         try {
-          constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          val ret = constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          copyIDs(ret)
+          ret
         } catch {
           case _: java.lang.reflect.InvocationTargetException | _: java.lang.IllegalArgumentException =>
             Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method. You are probably using " +
@@ -490,6 +495,15 @@ class Bundle extends Record {
         this
     }
   }
+
+  override def copyIDs(newOne: this.type): Unit = {
+    for( (name, elt) <- elements ) {
+      // newOne.elements(name).sharedIDs = elt.sharedIDs
+      elt.copyIDs(newOne.elements(name).asInstanceOf[elt.type])
+      newOne.elements(name).lbl_ = elt.lbl_
+    }
+  }
+
 
   /** Default "pretty-print" implementation
     * Analogous to printing a Map

@@ -22,7 +22,7 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
   // Disappointing hack to get reflection-generated names 
   // to appear in dependent types constructed with the version
   // of this thing where labels get down-propagated from the bits.
-  val bits  = gen //Output(gen.chiselCloneType)
+  val bits  = Output(gen.chiselCloneType)
 }
 
 object ReadyValidIO {
@@ -75,7 +75,15 @@ object ReadyValidIO {
   */
 class DecoupledIO[+T <: Data](gen: T, rdyl: Label, vall: Label) extends ReadyValidIO[T](gen, rdyl, vall)
 {
-  override def cloneType: this.type = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+  override def cloneType: this.type = {
+    val ret = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+    // println(s"this ids: ${this.sharedIDs.toString}")
+    // println(s"this.gen ids: ${gen.sharedIDs.toString}")
+    // println(s"this.bits ids: ${bits.sharedIDs.toString}")
+    copyIDs(ret)
+    bits.copyIDs(ret.bits)
+    ret
+  }
   def this(gen: T) = this(gen, UnknownLabel, UnknownLabel)
 }
 
