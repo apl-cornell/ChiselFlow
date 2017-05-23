@@ -12,7 +12,6 @@ import chisel3.internal.sourceinfo.{SourceInfo, DeprecatedSourceInfo, SourceInfo
 import chisel3.internal.firrtl.PrimOp._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
-import scala.collection.mutable.HashSet
 
 /** Element is a leaf data type: it cannot contain other Data objects. Example
   * uses are for representing primitive data types, like integers and bits.
@@ -391,12 +390,8 @@ abstract trait Num[T <: Data] {
 sealed class UInt private[core] (width: Width, lit: Option[ULit] = None)
     extends Bits(width, lit) with Num[UInt] {
 
-  private[core] override def cloneTypeWidth(w: Width): this.type = {
-    val ret = new UInt(w).asInstanceOf[this.type]
-    //ret.sharedIDs = HashSet(this.sharedIDs.toSeq:_*)
-    copyIDs(ret)
-    ret
-  }
+  private[core] override def cloneTypeWidth(w: Width): this.type =
+    new UInt(w).asInstanceOf[this.type]
   private[chisel3] def toType = s"UInt$width"
 
   // TODO: refactor to share documentation with Num or add independent scaladoc
@@ -566,12 +561,8 @@ object Bits extends UIntFactory
 sealed class SInt private[core] (width: Width, lit: Option[SLit] = None)
     extends Bits(width, lit) with Num[SInt] {
 
-  private[core] override def cloneTypeWidth(w: Width): this.type = {
-    val ret : this.type = new SInt(w).asInstanceOf[this.type]
-    //ret.sharedIDs = HashSet(this.sharedIDs.toSeq:_*)
-    copyIDs(ret) 
-    ret
-  }
+  private[core] override def cloneTypeWidth(w: Width): this.type =
+    new SInt(w).asInstanceOf[this.type]
   private[chisel3] def toType = s"SInt$width"
 
   final def unary_- (): SInt = macro SourceInfoTransform.noArg
@@ -722,11 +713,7 @@ object SInt extends SIntFactory
 sealed class Bool(lit: Option[ULit] = None) extends UInt(1.W, lit) {
   private[core] override def cloneTypeWidth(w: Width): this.type = {
     require(!w.known || w.get == 1)
-    val ret = new Bool().asInstanceOf[this.type]
-    // ret.sharedIDs = HashSet(this.sharedIDs.toSeq:_*)
-    // ret.sharedIDs = this.sharedIDs
-    copyIDs(ret)
-    ret
+    new Bool().asInstanceOf[this.type]
   }
 
   // REVIEW TODO: Why does this need to exist and have different conventions
@@ -864,13 +851,8 @@ object Mux {
   */
 sealed class FixedPoint private (width: Width, val binaryPoint: BinaryPoint, lit: Option[FPLit] = None)
     extends Bits(width, lit) with Num[FixedPoint] {
-  private[core] override def cloneTypeWidth(w: Width): this.type = {
-    val ret = new FixedPoint(w, binaryPoint).asInstanceOf[this.type]
-    // ret.sharedIDs = HashSet(this.sharedIDs.toSeq:_*)
-    // ret.sharedIDs = this.sharedIDs
-    copyIDs(ret)
-    ret
-  }
+  private[core] override def cloneTypeWidth(w: Width): this.type =
+    new FixedPoint(w, binaryPoint).asInstanceOf[this.type]
   private[chisel3] def toType = s"Fixed$width$binaryPoint"
 
   def := (that: Data)(implicit sourceInfo: SourceInfo): Unit = that match {

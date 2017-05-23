@@ -9,7 +9,6 @@ import chisel3.internal.Builder.{pushCommand, pushOp}
 import chisel3.internal.firrtl._
 import chisel3.internal.sourceinfo._
 import chisel3.internal.firrtl.PrimOp.AsUIntOp
-import scala.collection.mutable.HashSet
 
 sealed abstract class Direction(name: String) {
   override def toString: String = name
@@ -220,9 +219,6 @@ abstract class Data extends HasId with HasLabel{
         Data.setFirrtlDirection(clone_elem, Data.getFirrtlDirection(source_elem))
       }
     }
-    // clone.sharedIDs = this.sharedIDs // HashSet(this.sharedIDs.toSeq:_*)
-    copyIDs(clone) 
-    clone.lbl_ = lbl_
     clone
   }
   final def := (that: Data)(implicit sourceInfo: SourceInfo, connectionCompileOptions: CompileOptions): Unit = this.connect(that)(sourceInfo, connectionCompileOptions)

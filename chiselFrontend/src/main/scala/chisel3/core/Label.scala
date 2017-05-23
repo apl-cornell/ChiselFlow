@@ -53,29 +53,9 @@ object FunLabel{
   def apply(fname: String, ids: HasId*) =
     new FunLabel(fname, ids.toList)
 }
-
-/*
-class HLevel(var id: HasId) extends LabelComp {
-  def name = s"[[${id.getRef.name}]]H"
-  def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
-  override def equals(that: Any) = that match {
-    case lx: HLevel => lx.id == id
-    case _ => false
-  }
-  id.listeningLabels += this
-  println(s"${this.toString} listening to ${id.toString}")
-}
-
-object HLevel {
-  def apply(id: HasId) = new HLevel(id)
-  def unapply(l: HLevel) = Some(l.id)
-}
-*/
-
 case class HLevel(id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]H"
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
-  id.sharedIDs += id
 }
 
 case class VLabel(id: HasId) extends LabelComp {
@@ -86,12 +66,18 @@ case class VLabel(id: HasId) extends LabelComp {
 object C {
   def apply(l: Label): LabelComp = l match {
     case Label(conf, _) => conf
+    case _ =>
+      throw new Exception("tried to conf project Bundle")
+      UnknownLabelComp
   }
 }
 
 object I {
   def apply(l: Label): LabelComp = l match {
     case Label(_, integ) => integ
+    case _ =>
+      throw new Exception("tried to integ project Bundle")
+      UnknownLabelComp
   }
 }
 
