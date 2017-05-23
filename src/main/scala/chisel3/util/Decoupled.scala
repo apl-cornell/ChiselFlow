@@ -9,6 +9,8 @@ import chisel3._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
 
+import chisel3.core.{HLevel, VLabel}
+
 /** An I/O Bundle containing 'valid' and 'ready' signals that handshake
   * the transfer of data stored in the 'bits' subfield.
   * The base protocol implied by the directionality is that the consumer
@@ -19,10 +21,7 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
 {
   val ready = Input(Bool(), rdyl)
   val valid = Output(Bool(), vall)
-  // Disappointing hack to get reflection-generated names 
-  // to appear in dependent types constructed with the version
-  // of this thing where labels get down-propagated from the bits.
-  val bits  = gen //Output(gen.chiselCloneType)
+  val bits  = Output(gen.chiselCloneType)
 }
 
 object ReadyValidIO {

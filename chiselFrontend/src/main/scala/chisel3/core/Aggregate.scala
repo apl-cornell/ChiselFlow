@@ -394,6 +394,29 @@ abstract class Record extends Aggregate {
     // which can cause collisions
     val _namespace = Namespace.empty
     for ((name, elt) <- elements) { elt.setRef(this, _namespace.name(name)) }
+
+    def strTmp(s:String) = s contains "_T_"
+    def argIsTemp(arg: Arg): Boolean = arg match {
+      case ax: Ref => strTmp(ax.name)
+      case ax: ModuleIO => strTmp(ax.name) || !ax.mod.refSet ||strTmp(ax.mod.getRef.name)
+      case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
+      case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
+      case ax: Node => !ax.id.refSet || strTmp(ax.name)
+      case ax: LitArg => false
+    }
+
+    for((name, elt) <- elements) {
+      elt.lbl.conf match {
+        case lx: HLevel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
+        case lx: VLabel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
+        case lx => 
+      }
+      elt.lbl.integ match {
+        case lx: HLevel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
+        case lx: VLabel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
+        case lx => 
+      }
+    }
   }
 
   private[chisel3] final def allElements: Seq[Element] = elements.toIndexedSeq.flatMap(_._2.allElements)

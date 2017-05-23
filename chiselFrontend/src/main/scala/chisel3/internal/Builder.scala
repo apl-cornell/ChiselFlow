@@ -106,6 +106,7 @@ private[chisel3] trait HasId extends InstanceId {
   private[chisel3] def setRef(parent: HasId, index: Int): Unit = setRef(Index(Node(parent), ILit(index)))
   private[chisel3] def setRef(parent: HasId, index: UInt): Unit = setRef(Index(Node(parent), index.ref))
   private[chisel3] def getRef: Arg = _ref.get
+  private[chisel3] def refSet: Boolean = !_ref.isEmpty
 
   // Implementation of public methods.
   def instanceName: String = _parent match {
