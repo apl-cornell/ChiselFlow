@@ -244,6 +244,9 @@ sealed class Vec[T <: Data] private (gen: => T, val length: Int)
   }
 
   private[chisel3] def toType: String = s"${sample_element.toType}[$length]"
+  private[chisel3] override def toType(ctx: Component): String =  {
+    s"${sample_element.toType(ctx)}[$length]"
+  }
   private[chisel3] lazy val flatten: IndexedSeq[Bits] =
     (0 until length).flatMap(i => this.apply(i).flatten)
 
@@ -386,6 +389,16 @@ abstract class Record extends Aggregate {
   }
 
   private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
+  
+  def strTmp(s:String) = s contains "_T_"
+  def argIsTemp(arg: Arg): Boolean = arg match {
+    case ax: Ref => strTmp(ax.name)
+    case ax: ModuleIO => strTmp(ax.name) || strTmp(ax.mod.name)
+    case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
+    case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
+    case ax: Node => !ax.id.refSet || strTmp(ax.name)
+    case ax: LitArg => false
+  }
 
   // NOTE: This sets up dependent references, it can be done before closing the Module
   private[chisel3] override def _onModuleClose: Unit = { // scalastyle:ignore method.name
@@ -393,30 +406,34 @@ abstract class Record extends Aggregate {
     // identifier; however, Namespace sanitizes identifiers to make them legal for Firrtl/Verilog
     // which can cause collisions
     val _namespace = Namespace.empty
-    for ((name, elt) <- elements) { elt.setRef(this, _namespace.name(name)) }
-
-    def strTmp(s:String) = s contains "_T_"
-    def argIsTemp(arg: Arg): Boolean = arg match {
-      case ax: Ref => strTmp(ax.name)
-      case ax: ModuleIO => strTmp(ax.name) || !ax.mod.refSet ||strTmp(ax.mod.getRef.name)
-      case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
-      case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
-      case ax: Node => !ax.id.refSet || strTmp(ax.name)
-      case ax: LitArg => false
+    
+    for ((name, elt) <- elements.toIndexedSeq.reverse) { 
+      elt.setRef(this, _namespace.name(name))
     }
 
-    for((name, elt) <- elements) {
-      elt.lbl.conf match {
-        case lx: HLevel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
-        case lx: VLabel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
-        case lx => 
-      }
-      elt.lbl.integ match {
-        case lx: HLevel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
-        case lx: VLabel => if(argIsTemp(lx.id.getRef)) lx.id.setRef(this, lx.id.getRef.name)
-        case lx => 
+    for ((name, elt) <- elements.toIndexedSeq.reverse) {
+      if(elt.lbl != null) {
+        elt.lbl.conf match {
+          case lx: HLevel =>
+            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
+              lx.id.setRef(this, lx.id.getRef.name)
+          case lx: VLabel =>
+            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
+              lx.id.setRef(this, lx.id.getRef.name)
+          case lx => 
+        }
+        elt.lbl.integ match {
+          case lx: HLevel => 
+            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
+              lx.id.setRef(this, lx.id.getRef.name)
+          case lx: VLabel =>
+            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
+              lx.id.setRef(this, lx.id.getRef.name)
+          case lx => 
+        }
       }
     }
+
   }
 
   private[chisel3] final def allElements: Seq[Element] = elements.toIndexedSeq.flatMap(_._2.allElements)
@@ -497,11 +514,15 @@ class Bundle extends Record {
     val constructor = this.getClass.getConstructors.head
     try {
       val args = Seq.fill(constructor.getParameterTypes.size)(null)
-      constructor.newInstance(args:_*).asInstanceOf[this.type]
+      val ret = constructor.newInstance(args:_*).asInstanceOf[this.type]
+      cpy_lbls(ret)
+      ret
     } catch {
       case e: java.lang.reflect.InvocationTargetException if e.getCause.isInstanceOf[java.lang.NullPointerException] =>
         try {
-          constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          val ret = constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          cpy_lbls(ret)
+          ret
         } catch {
           case _: java.lang.reflect.InvocationTargetException | _: java.lang.IllegalArgumentException =>
             Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method. You are probably using " +
@@ -512,6 +533,13 @@ class Bundle extends Record {
         Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method")
         this
     }
+  }
+
+  override def cpy_lbls(that: this.type): Unit = {
+    // for ((name, elt) <- elements)  {
+    //   elt.cpy_lbls(that.elements(name).asInstanceOf[elt.type])
+    //   // that.elements(name).lbl_ = elt.lbl_
+    // }
   }
 
   /** Default "pretty-print" implementation

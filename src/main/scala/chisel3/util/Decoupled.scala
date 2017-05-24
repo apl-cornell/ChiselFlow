@@ -22,6 +22,44 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
   val ready = Input(Bool(), rdyl)
   val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
+  override def _onModuleClose: Unit = {
+    super._onModuleClose
+    bits match {
+      case bx: Record =>
+        for ((name, elt) <- elements.toIndexedSeq.reverse) {
+          println(s"elt: $name")
+          println(s"pprint elt: ${elt.getRef.pprint}")
+          if(elt.lbl != null) {
+            elt.lbl.conf match {
+              case lx: HLevel =>
+                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) {
+                  println("found name in bits")
+                  lx.id.setRef(bx, lx.id.getRef.name)
+                  println(lx.toString)
+                  println(s"pprint: ${lx.id.getRef.pprint}")
+                  println(lx.name)
+                }
+              case lx: VLabel =>
+                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                  lx.id.setRef(bx, lx.id.getRef.name)
+              case lx => 
+            }
+            elt.lbl.integ match {
+              case lx: HLevel => 
+                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                  lx.id.setRef(bx, lx.id.getRef.name)
+              case lx: VLabel =>
+                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                  lx.id.setRef(bx, lx.id.getRef.name)
+              case lx => 
+            }
+          }
+        }
+      case _ =>
+        println("bits is not a record")
+    }
+
+  }
 }
 
 object ReadyValidIO {
@@ -74,7 +112,12 @@ object ReadyValidIO {
   */
 class DecoupledIO[+T <: Data](gen: T, rdyl: Label, vall: Label) extends ReadyValidIO[T](gen, rdyl, vall)
 {
-  override def cloneType: this.type = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+  override def cloneType: this.type = {
+    val ret = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+    cpy_lbls(ret)
+    bits.cpy_lbls(ret.bits)
+    ret
+  }
   def this(gen: T) = this(gen, UnknownLabel, UnknownLabel)
 }
 

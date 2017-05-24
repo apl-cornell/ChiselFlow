@@ -193,6 +193,10 @@ abstract class Data extends HasId with HasLabel{
   private[core] def width: Width
   private[core] def legacyConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit
 
+  private[chisel3] def cpy_lbls(that: this.type): Unit = {
+    that.lbl_ = lbl_
+  }
+
   /** cloneType must be defined for any Chisel object extending Data.
     * It is responsible for constructing a basic copy of the object being cloned.
     * If cloneType needs to recursively clone elements of an object, it should call
