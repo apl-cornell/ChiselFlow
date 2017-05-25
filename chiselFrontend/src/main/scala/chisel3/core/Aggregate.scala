@@ -263,6 +263,10 @@ sealed class Vec[T <: Data] private (gen: => T, val length: Int)
       else self flatMap (e => List(e.toPrintable, PString(", "))) dropRight 1
     PString("Vec(") + Printables(elts) + PString(")")
   }
+
+  override def _onModuleClose: Unit = {
+    sample_element.setRef(this, 0)
+  }
 }
 
 /** A trait for [[Vec]]s containing common hardware generators for collection
@@ -536,10 +540,10 @@ class Bundle extends Record {
   }
 
   override def cpy_lbls(that: this.type): Unit = {
-    // for ((name, elt) <- elements)  {
-    //   elt.cpy_lbls(that.elements(name).asInstanceOf[elt.type])
-    //   // that.elements(name).lbl_ = elt.lbl_
-    // }
+    for ((name, elt) <- elements)  {
+      elt.cpy_lbls(that.elements(name).asInstanceOf[elt.type])
+      // that.elements(name).lbl_ = elt.lbl_
+    }
   }
 
   /** Default "pretty-print" implementation

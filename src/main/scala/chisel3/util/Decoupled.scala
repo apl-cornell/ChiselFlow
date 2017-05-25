@@ -27,18 +27,11 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
     bits match {
       case bx: Record =>
         for ((name, elt) <- elements.toIndexedSeq.reverse) {
-          println(s"elt: $name")
-          println(s"pprint elt: ${elt.getRef.pprint}")
           if(elt.lbl != null) {
             elt.lbl.conf match {
               case lx: HLevel =>
-                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) {
-                  println("found name in bits")
+                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) 
                   lx.id.setRef(bx, lx.id.getRef.name)
-                  println(lx.toString)
-                  println(s"pprint: ${lx.id.getRef.pprint}")
-                  println(lx.name)
-                }
               case lx: VLabel =>
                 if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
                   lx.id.setRef(bx, lx.id.getRef.name)
@@ -56,7 +49,6 @@ abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: 
           }
         }
       case _ =>
-        println("bits is not a record")
     }
 
   }
