@@ -17,7 +17,7 @@ import chisel3.core.{HLevel, VLabel}
   * uses the flipped interface. Actual semantics of ready/valid are
   * enforced via use of concrete subclasses.
   */
-abstract class ReadyValidIO[+T <: Data](gen: T, rdyl: Label=UnknownLabel, vall: Label=UnknownLabel) extends Bundle
+abstract class ReadyValidIO[+T <: Data](gen: T, val rdyl: Label=UnknownLabel, val vall: Label=UnknownLabel) extends Bundle
 {
   val ready = Input(Bool(), rdyl)
   val valid = Output(Bool(), vall)

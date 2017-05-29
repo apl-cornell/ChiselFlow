@@ -392,8 +392,7 @@ abstract class Record extends Aggregate {
     elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }
 
-  private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
-  
+
   def strTmp(s:String) = s contains "_T_"
   def argIsTemp(arg: Arg): Boolean = arg match {
     case ax: Ref => strTmp(ax.name)
@@ -403,6 +402,46 @@ abstract class Record extends Aggregate {
     case ax: Node => !ax.id.refSet || strTmp(ax.name)
     case ax: LitArg => false
   }
+
+  def slotsToNames(arg: Arg): Seq[String] =  {
+    type Names = scala.collection.mutable.LinkedHashSet[String]
+    val names = new scala.collection.mutable.LinkedHashSet[String]
+    def slotsToSeq_(names: Names)(arg: Arg): Arg = arg match {
+      case ax: Slot => names += ax.name; slotsToSeq_(names)(ax.imm)
+      case ax: Node => slotsToSeq_(names)(ax.id.getRef)
+      case ax: Index => slotsToSeq_(names)(ax.imm)
+      case ax => ax
+    }
+    slotsToSeq_(names)(arg)
+    names.toSeq.reverse
+  }
+
+  def namesToElt(names: Seq[String]): Data = {
+    var elt: Data = this
+    for(name <- names) elt match {
+      case ax: Record => 
+        if(ax.elements contains name) elt = ax.elements(name)
+      case _ => 
+    }
+    elt
+  }
+  
+  // def swapTmpWithId(arg: Arg, id:HasId): Arg = arg match {
+  //   case ax: Ref => val r = (if(strTmp(ax.name)) Node(id) else ax); println(r.pprint); r
+  //   case ax: Node => val r = (ax.id match {
+  //     case axx: Ref if(strTmp(ax.name)) => Node(id)
+  //     case _ => ax
+  //   }); println(r.pprint); r
+  //     // ax.id.setRef(swapTmpWithId(ax.id.getRef, id)); ax
+  //   case ax: Slot => 
+  //     val r = Slot(swapTmpWithId(ax.imm, id).asInstanceOf[Node], ax.name);
+  //     println(r.pprint); r
+  //   case ax: Index => val r = Index(swapTmpWithId(ax.imm, id), ax.value);
+  //     println(r.pprint); r
+  //   case ax => val r = ax; println(r.pprint); r
+  // }
+
+  private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
 
   // NOTE: This sets up dependent references, it can be done before closing the Module
   private[chisel3] override def _onModuleClose: Unit = { // scalastyle:ignore method.name
@@ -486,11 +525,12 @@ class Bundle extends Record {
   final lazy val elements: ListMap[String, Data] = {
     val nameMap = LinkedHashMap[String, Data]()
     val seen = HashSet[Data]()
+    def isShadow(s:String) = s contains "shdw"
     for (m <- getPublicFields(classOf[Bundle])) {
       getBundleField(m) foreach { d =>
         if (nameMap contains m.getName) {
           require(nameMap(m.getName) eq d)
-        } else if (!seen(d)) {
+        } else if (!seen(d) && !isShadow(m.getName)) {
           nameMap(m.getName) = d
           seen += d
         }
@@ -498,6 +538,7 @@ class Bundle extends Record {
     }
     ListMap(nameMap.toSeq sortWith { case ((an, a), (bn, b)) => (a._id > b._id) || ((a eq b) && (an > bn)) }: _*)
   }
+
 
   /** Returns a field's contained user-defined Bundle element if it appears to
     * be one, otherwise returns None.

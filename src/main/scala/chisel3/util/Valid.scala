@@ -9,13 +9,58 @@ import chisel3._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
 
+import chisel3.core.{HLevel, VLabel}
+import chisel3.internal.firrtl.{Node}
+
 /** An Bundle containing data and a signal determining if it is valid */
-class Valid[+T <: Data](gen: T, vall: Label=UnknownLabel) extends Bundle
+class Valid[+T <: Data](gen: T, val vall: Label=UnknownLabel) extends Bundle
 {
   val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
   def fire(dummy: Int = 0): Bool = valid
   override def cloneType: this.type = Valid(gen, vall).asInstanceOf[this.type]
+  override def _onModuleClose: Unit = {
+    super._onModuleClose
+    bits match {
+      case bx: Record =>
+        if(valid.lbl != null) {
+          valid.lbl.conf match {
+            case lx: HLevel =>
+              if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) {
+                lx.id.setRef(bx, lx.id.getRef.name)
+                // println("valid hlvl ref: " + lx.id.getRef.pprint)
+                // println(s"this: ${this.getRef.pprint}")
+                // println(s"bx: ${bx.getRef.pprint}")
+
+                // //lx.id.setRef(swapTmpWithId(lx.id.getRef, this))
+                // val slots = slotsToNames(lx.id.getRef)
+                // val elt = bx.namesToElt(slots)
+                // println(s"slots: ${slots.toString}")
+                // println(s"elt: ${elt.toString}")
+                // println(s"eltId: ${elt.getRef.pprint}")
+                // lx.id.setRef(Node(elt))
+                // lx.id.setRef(bx, lots)
+                // println (s"slots pretty: ${lx.id.getRef.pprint}")
+                // if(bx.elements contains lx.id.getRef.name) lx.id.setRef(bx, lx.id.getRef.name)
+              }
+            case lx: VLabel =>
+              if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                lx.id.setRef(bx, lx.id.getRef.name)
+            case lx => 
+          }
+          valid.lbl.integ match {
+            case lx: HLevel => 
+              if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                lx.id.setRef(bx, lx.id.getRef.name)
+            case lx: VLabel =>
+              if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
+                lx.id.setRef(bx, lx.id.getRef.name)
+            case lx => 
+          }
+        }
+      case _ =>
+    }
+  }
 }
 
 /** Adds a valid protocol to any interface */

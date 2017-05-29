@@ -49,6 +49,7 @@ object PrimOp {
   val AsClockOp = PrimOp("asClock")
 }
 
+
 abstract class Arg {
   def fullName(ctx: Component): String = name
   def name: String
@@ -111,7 +112,7 @@ case class ModuleIO(mod: Module, name: String) extends Arg {
 }
 case class Slot(imm: Node, name: String) extends Arg {
   override def fullName(ctx: Component): String =
-    if (imm.fullName(ctx).isEmpty) name else s"${imm.fullName(ctx)}.${name}"
+    s"${imm.fullName(ctx)}.${name}"
   def pprint = s"Slot(${imm.pprint}, ${name})"
 }
 case class Index(imm: Arg, value: Arg) extends Arg {
