@@ -13,10 +13,13 @@ import chisel3.core.{HLevel, VLabel}
 import chisel3.internal.firrtl.{Node}
 
 /** An Bundle containing data and a signal determining if it is valid */
-class Valid[+T <: Data](gen: T, val vall: Label=UnknownLabel) extends Bundle
+class Valid[+T <: Data](gen: T, val vall: Label=UnknownLabel, val genl: Label=UnknownLabel) extends Bundle
 {
   val valid = Output(Bool(), vall)
-  val bits  = Output(gen.chiselCloneType)
+  val bits  = genl match {
+    case UnknownLabel => Output(gen.chiselCloneType)
+    case _ => Output(gen.chiselCloneType, genl)
+  }
   def fire(dummy: Int = 0): Bool = valid
   override def cloneType: this.type = Valid(gen, vall).asInstanceOf[this.type]
   override def _onModuleClose: Unit = {
@@ -65,7 +68,7 @@ class Valid[+T <: Data](gen: T, val vall: Label=UnknownLabel) extends Bundle
 
 /** Adds a valid protocol to any interface */
 object Valid {
-  def apply[T <: Data](gen: T, lbl: Label=UnknownLabel): Valid[T] = new Valid(gen, lbl)
+  def apply[T <: Data](gen: T, vall: Label=UnknownLabel, genl: Label=UnknownLabel): Valid[T] = new Valid(gen, vall, genl)
 }
 
 /** A hardware module that delays data coming down the pipeline
