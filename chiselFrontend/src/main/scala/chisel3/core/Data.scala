@@ -162,7 +162,7 @@ abstract class Data extends HasId with HasLabel{
       } catch {
         case MonoConnect.MonoConnectException(message) =>
           throwException(
-            s"Connection between sink ($this) and source ($that) failed @$message"
+            s"Connection between sink ($this) and source ($that) failed @$message si:${sourceInfo.makeMessage(x => x)}"
           )
       }
     } else {
@@ -178,7 +178,7 @@ abstract class Data extends HasId with HasLabel{
       } catch {
         case BiConnect.BiConnectException(message) =>
           throwException(
-            s"Connection between left ($this) and source ($that) failed @$message"
+            s"Connection between left ($this) and source ($that) failed @$message si:${sourceInfo.makeMessage(x => x)}"
           )
       }
     } else {

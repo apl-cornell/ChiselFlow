@@ -79,7 +79,13 @@ object Reg {
       pushCommand(DefRegInit(sourceInfo, x, clock, Node(x._parent.get.reset), init.ref, lbl))
     }
     if (next != null) {
-      Binding.checkSynthesizable(next, s"'next' ($next)")
+      try {
+        Binding.checkSynthesizable(next, s"'next' ($next)")
+      } catch {
+        case (e: Exception) =>
+          val inf = s"badness info: ${sourceInfo.makeMessage(x=>x)}\n"
+          throw new Exception(inf + e.getMessage())
+      }
       x := next
     }
     x
