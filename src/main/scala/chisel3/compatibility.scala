@@ -22,6 +22,7 @@ package object Chisel {     // scalastyle:ignore package.object.name
   val FunLabel = chisel3.core.FunLabel
   val HLevel = chisel3.core.HLevel
   val VLabel = chisel3.core.VLabel
+  val JoinLabelComp = chisel3.core.JoinLabelComp
   val Declassify = chisel3.core.Declassify
   val Endorse = chisel3.core.Endorse
 
@@ -39,6 +40,7 @@ package object Chisel {     // scalastyle:ignore package.object.name
   val NODIR = chisel3.core.Direction.Unspecified
   object Flipped {
     def apply[T<:Data](target: T): T = chisel3.core.Flipped[T](target)
+    def apply[T<:Data](target: T, lbl: Label): T = chisel3.core.Flipped[T](target, lbl)
   }
   // TODO: Possibly move the AddDirectionToData class here?
   implicit class AddDirMethodToData[T<:Data](val target: T) extends AnyVal {

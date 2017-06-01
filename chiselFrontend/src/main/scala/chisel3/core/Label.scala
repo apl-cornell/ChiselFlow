@@ -82,5 +82,8 @@ object I {
 }
 
 // These are not parsed by sFIRRTL and are only used internally
-// case class JoinLabel(l: Label, r: Label) extends Label
+case class JoinLabelComp(l: LabelComp, r: LabelComp) extends LabelComp {
+  def name = s"${l.name} join ${r.name}"
+  def fullName(ctx: Component) = s"${l.fullName(ctx)} join ${r.fullName(ctx)}"
+}
 // case class MeetLabel(l: Label, r: Label) extends Label
