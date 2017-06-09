@@ -86,4 +86,9 @@ case class JoinLabelComp(l: LabelComp, r: LabelComp) extends LabelComp {
   def name = s"${l.name} join ${r.name}"
   def fullName(ctx: Component) = s"${l.fullName(ctx)} join ${r.fullName(ctx)}"
 }
+
+case class MeetLabelComp(l: LabelComp, r: LabelComp) extends LabelComp {
+  def name = s"${l.name} meet ${r.name}"
+  def fullName(ctx: Component) = s"${l.fullName(ctx)} meet ${r.fullName(ctx)}"
+}
 // case class MeetLabel(l: Label, r: Label) extends Label
