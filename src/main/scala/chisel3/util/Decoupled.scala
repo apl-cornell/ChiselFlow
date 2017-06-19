@@ -29,19 +29,19 @@ abstract class ReadyValidIO[+T <: Data](gen: T, val rdyl: Label=UnknownLabel, va
         for ((name, elt) <- elements.toIndexedSeq.reverse) {
           if(elt.lbl != null) {
             elt.lbl.conf match {
-              case lx: HLevel =>
+              case lx: HLevel if(lx.id.refSet) =>
                 if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) 
                   lx.id.setRef(bx, lx.id.getRef.name)
-              case lx: VLabel =>
+              case lx: VLabel if(lx.id.refSet) =>
                 if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
                   lx.id.setRef(bx, lx.id.getRef.name)
               case lx => 
             }
             elt.lbl.integ match {
-              case lx: HLevel => 
+              case lx: HLevel if(lx.id.refSet) => 
                 if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
                   lx.id.setRef(bx, lx.id.getRef.name)
-              case lx: VLabel =>
+              case lx: VLabel if(lx.id.refSet) =>
                 if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
                   lx.id.setRef(bx, lx.id.getRef.name)
               case lx => 
