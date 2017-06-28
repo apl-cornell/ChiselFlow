@@ -457,19 +457,19 @@ abstract class Record extends Aggregate {
     for ((name, elt) <- elements.toIndexedSeq.reverse) {
       if(elt.lbl != null) {
         elt.lbl.conf match {
-          case lx: HLevel if(lx.id.refSet) =>
+          case lx: HLevel if(lx.id != null && lx.id.refSet) =>
             if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
               lx.id.setRef(this, lx.id.getRef.name)
-          case lx: VLabel if(lx.id.refSet) =>
+          case lx: VLabel if(lx.id != null && lx.id.refSet) =>
             if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
               lx.id.setRef(this, lx.id.getRef.name)
           case lx => 
         }
         elt.lbl.integ match {
-          case lx: HLevel if(lx.id.refSet) => 
+          case lx: HLevel if(lx.id != null && lx.id.refSet) => 
             if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
               lx.id.setRef(this, lx.id.getRef.name)
-          case lx: VLabel if(lx.id.refSet) =>
+          case lx: VLabel if(lx.id != null && lx.id.refSet) =>
             if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
               lx.id.setRef(this, lx.id.getRef.name)
           case lx => 
