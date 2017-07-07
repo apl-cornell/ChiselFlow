@@ -1,7 +1,7 @@
 // See LICENSE for license details.
 
 /** Wrappers for valid interfaces and associated circuit generators using them.
-  */
+ */
 
 package chisel3.util
 
@@ -61,7 +61,7 @@ class Valid[+T <: Data](gen: T, val vall: Label=UnknownLabel, val genl: Label=Un
             case lx => 
           }
         }
-      case _ =>
+            case _ =>
     }
   }
 }
@@ -72,37 +72,39 @@ object Valid {
 }
 
 /** A hardware module that delays data coming down the pipeline
-  by the number of cycles set by the latency parameter. Functionality
-  is similar to ShiftRegister but this exposes a Pipe interface.
+ by the number of cycles set by the latency parameter. Functionality
+ is similar to ShiftRegister but this exposes a Pipe interface.
 
-  Example usage:
-    val pipe = new Pipe(UInt())
-    pipe.io.enq <> produce.io.out
-    consumer.io.in <> pipe.io.deq
-  */
+ Example usage:
+ val pipe = new Pipe(UInt())
+ pipe.io.enq <> produce.io.out
+ consumer.io.in <> pipe.io.deq
+ */
 object Pipe
 {
-  def apply[T <: Data](enqValid: Bool, enqBits: T, latency: Int): Valid[T] = {
+  def apply[T <: Data](enqValid: Bool, enqBits: T, latency: Int, pvall: Label, pgenl: Label): Valid[T] = {
     if (latency == 0) {
-      val out = Wire(Valid(enqBits))
+      val out = Wire(Valid(enqBits, vall=pvall, genl=pgenl))
       out.valid <> enqValid
       out.bits <> enqBits
       out
     } else {
       val v = Reg(Bool(), next=enqValid, init=false.B)
       val b = RegEnable(enqBits, enqValid)
-      apply(v, b, latency-1)
+      apply(v, b, latency-1, pvall, pgenl)
     }
   }
-  def apply[T <: Data](enqValid: Bool, enqBits: T): Valid[T] = apply(enqValid, enqBits, 1)
-  def apply[T <: Data](enq: Valid[T], latency: Int = 1): Valid[T] = apply(enq.valid, enq.bits, latency)
+  def apply[T <: Data](enqValid: Bool, enqBits: T): Valid[T] = apply(enqValid, enqBits, 1, UnknownLabel, UnknownLabel)
+  def apply[T <: Data](enqValid: Bool, enqBits: T, latency: Int): Valid[T] = apply(enqValid, enqBits, latency, UnknownLabel, UnknownLabel)
+  def apply[T <: Data](enq: Valid[T], latency: Int = 1, pvall: Label = UnknownLabel, pgenl: Label=UnknownLabel): Valid[T] = apply(enq.valid, enq.bits, latency, pvall, pgenl)
+  //def apply[T <: Data](enq: Valid[T], latency: Int= 1, pvall: Label, pgenl: Label): Valid[T] = apply(enq.valid, enq.bits, latency, pvall, pgenl)
 }
 
-class Pipe[T <: Data](gen: T, latency: Int = 1) extends Module
+class Pipe[T <: Data](gen: T, latency: Int = 1, pvall: Label=UnknownLabel, pgenl: Label=UnknownLabel) extends Module
 {
   class PipeIO extends Bundle {
-    val enq = Input(Valid(gen))
-    val deq = Output(Valid(gen))
+    val enq = Input(Valid(gen, pvall, pgenl))
+    val deq = Output(Valid(gen, pvall, pgenl))
   }
 
   val io = IO(new PipeIO)
