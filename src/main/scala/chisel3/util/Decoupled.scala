@@ -167,25 +167,27 @@ object Irrevocable
 }
 
 object EnqIO {
-  def apply[T<:Data](gen: T): DecoupledIO[T] = Decoupled(gen)
+  def apply[T<:Data](gen: T, rdyl: Label = UnknownLabel, vall: Label=UnknownLabel): DecoupledIO[T] = Decoupled(gen, rdyl, vall)
 }
 object DeqIO {
-  def apply[T<:Data](gen: T): DecoupledIO[T] = Flipped(Decoupled(gen))
+  def apply[T<:Data](gen: T, rdyl: Label = UnknownLabel, vall: Label=UnknownLabel): DecoupledIO[T] = Flipped(Decoupled(gen, rdyl, vall))
 }
 
 /** An I/O Bundle for Queues
   * @param gen The type of data to queue
   * @param entries The max number of entries in the queue */
-class QueueIO[T <: Data](gen: T, entries: Int) extends Bundle
+class QueueIO[T <: Data](gen: T, entries: Int, rdyl: Label = UnknownLabel,
+    vall: Label = UnknownLabel) extends Bundle
 {
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]] flipped */
-  val enq = DeqIO(gen)
+  val enq = DeqIO(gen, rdyl, vall)
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]]*/
-  val deq = EnqIO(gen)
+  val deq = EnqIO(gen, rdyl, vall)
   /** The current amount of data in the queue */
-  val count = Output(UInt(log2Up(entries + 1).W))
+  //For now label the count the same level as the rdy/val
+  val count = Output(UInt(log2Up(entries + 1).W), lbl=rdyl)
 
-  override def cloneType = new QueueIO(gen, entries).asInstanceOf[this.type]
+  override def cloneType = new QueueIO(gen, entries, rdyl, vall).asInstanceOf[this.type]
 }
 
 /** A hardware module implementing a Queue
@@ -206,12 +208,14 @@ class Queue[T <: Data](gen: T,
                        val entries: Int,
                        pipe: Boolean = false,
                        flow: Boolean = false,
-                       override_reset: Option[Bool] = None)
+                       override_reset: Option[Bool] = None,
+                       rdyl: Label = UnknownLabel,
+                       vall: Label = UnknownLabel)
 extends Module(override_reset=override_reset) {
-  def this(gen: T, entries: Int, pipe: Boolean, flow: Boolean, _reset: Bool) =
-    this(gen, entries, pipe, flow, Some(_reset))
+  def this(gen: T, entries: Int, pipe: Boolean, flow: Boolean, _reset: Bool, rdyl: Label, vall: Label) =
+    this(gen, entries, pipe, flow, Some(_reset), rdyl, vall)
 
-  val io = IO(new QueueIO(gen, entries))
+  val io = IO(new QueueIO(gen, entries, rdyl, vall))
 
   private val ram = Mem(entries, gen)
   private val enq_ptr = Counter(entries)
@@ -282,8 +286,10 @@ object Queue
       enq: ReadyValidIO[T],
       entries: Int = 2,
       pipe: Boolean = false,
-      flow: Boolean = false): DecoupledIO[T] = {
-    val q = Module(new Queue(enq.bits.cloneType, entries, pipe, flow))
+      flow: Boolean = false,
+      rdyl: Label = UnknownLabel,
+      vall: Label = UnknownLabel): DecoupledIO[T] = {
+    val q = Module(new Queue(enq.bits.cloneType, entries, pipe, flow, rdyl = rdyl, vall = vall))
     q.io.enq.valid := enq.valid // not using <> so that override is allowed
     q.io.enq.bits := enq.bits
     enq.ready := q.io.enq.ready

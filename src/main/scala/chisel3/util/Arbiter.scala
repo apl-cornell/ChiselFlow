@@ -8,6 +8,8 @@ package chisel3.util
 import chisel3._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
+import labelutil._
+import labelutil.LU._
 
 /** IO bundle definition for an Arbiter, which takes some number of ready-valid inputs and outputs
   * (selects) at most one.
@@ -125,8 +127,8 @@ class RRArbiter[T <: Data](gen:T, n: Int, inl: Label, outl: Label)
   * consumer.io.in <> arb.io.out
   * }}}
   */
-class Arbiter[T <: Data](gen: T, n: Int) extends Module {
-  val io = IO(new ArbiterIO(gen, n))
+class Arbiter[T <: Data](gen: T, n: Int, inl: Label, outl: Label) extends Module {
+  val io = IO(new ArbiterIO(gen, n, inl, outl))
 
   io.chosen := (n-1).asUInt
   io.out.bits := io.in(n-1).bits
