@@ -354,7 +354,7 @@ trait VecLike[T <: Data] extends collection.IndexedSeq[T] with HasId {
   * Record should only be extended by libraries and fairly sophisticated generators.
   * RTL writers should use [[Bundle]].
   */
-abstract class Record extends Aggregate {
+abstract class Record extends Aggregate with BitsLevelNamer {
 
   /** The collection of [[Data]]
     *
@@ -392,17 +392,6 @@ abstract class Record extends Aggregate {
     elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }
 
-
-  def strTmp(s:String) = s contains "_T_"
-  def argIsTemp(arg: Arg): Boolean = arg match {
-    case ax: Ref => strTmp(ax.name)
-    case ax: ModuleIO => strTmp(ax.name) || strTmp(ax.mod.name)
-    case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
-    case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
-    case ax: Node => !ax.id.refSet || strTmp(ax.name)
-    case ax: LitArg => false
-  }
-
   def slotsToNames(arg: Arg): Seq[String] =  {
     type Names = scala.collection.mutable.LinkedHashSet[String]
     val names = new scala.collection.mutable.LinkedHashSet[String]
@@ -426,21 +415,6 @@ abstract class Record extends Aggregate {
     elt
   }
   
-  // def swapTmpWithId(arg: Arg, id:HasId): Arg = arg match {
-  //   case ax: Ref => val r = (if(strTmp(ax.name)) Node(id) else ax); println(r.pprint); r
-  //   case ax: Node => val r = (ax.id match {
-  //     case axx: Ref if(strTmp(ax.name)) => Node(id)
-  //     case _ => ax
-  //   }); println(r.pprint); r
-  //     // ax.id.setRef(swapTmpWithId(ax.id.getRef, id)); ax
-  //   case ax: Slot => 
-  //     val r = Slot(swapTmpWithId(ax.imm, id).asInstanceOf[Node], ax.name);
-  //     println(r.pprint); r
-  //   case ax: Index => val r = Index(swapTmpWithId(ax.imm, id), ax.value);
-  //     println(r.pprint); r
-  //   case ax => val r = ax; println(r.pprint); r
-  // }
-
   private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
 
   // NOTE: This sets up dependent references, it can be done before closing the Module
@@ -452,29 +426,6 @@ abstract class Record extends Aggregate {
     
     for ((name, elt) <- elements.toIndexedSeq.reverse) { 
       elt.setRef(this, _namespace.name(name))
-    }
-
-    for ((name, elt) <- elements.toIndexedSeq.reverse) {
-      if(elt.lbl != null) {
-        elt.lbl.conf match {
-          case lx: HLevel if(lx.id != null && lx.id.refSet) =>
-            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
-              lx.id.setRef(this, lx.id.getRef.name)
-          case lx: VLabel if(lx.id != null && lx.id.refSet) =>
-            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
-              lx.id.setRef(this, lx.id.getRef.name)
-          case lx => 
-        }
-        elt.lbl.integ match {
-          case lx: HLevel if(lx.id != null && lx.id.refSet) => 
-            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
-              lx.id.setRef(this, lx.id.getRef.name)
-          case lx: VLabel if(lx.id != null && lx.id.refSet) =>
-            if(argIsTemp(lx.id.getRef) && (elements contains lx.id.getRef.name))
-              lx.id.setRef(this, lx.id.getRef.name)
-          case lx => 
-        }
-      }
     }
 
   }
@@ -599,5 +550,46 @@ class Bundle extends Record {
 private[core] object Bundle {
   val keywords = List("flip", "asInput", "asOutput", "cloneType", "chiselCloneType", "toBits",
     "widthOption", "signalName", "signalPathName", "signalParent", "signalComponent")
+}
+
+
+trait BitsLevelNamer {
+
+  def strTmp(s:String) = s contains "_T_"
+  def argIsTemp(arg: Arg): Boolean = arg match {
+    case ax: Ref => strTmp(ax.name)
+    case ax: ModuleIO => strTmp(ax.name) || strTmp(ax.mod.name)
+    case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
+    case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
+    case ax: Node => !ax.id.refSet || strTmp(ax.name)
+    case ax: LitArg => false
+  }
+
+
+  def nameBitsInLevels(namedRecord: Record, outerRecord: Record): Unit = {
+      val nameElts = namedRecord.elements.toIndexedSeq.reverse ++ outerRecord.elements.toIndexedSeq.reverse
+      for ((name, elt) <- nameElts) {
+        if(elt.lbl != null) {
+          elt.lbl.conf match {
+            case lx: HLevel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name)) 
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx: VLabel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx => 
+          }
+          elt.lbl.integ match {
+            case lx: HLevel if(lx.id.refSet) => 
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx: VLabel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx => 
+          }
+        }
+      }
+  }
 }
 

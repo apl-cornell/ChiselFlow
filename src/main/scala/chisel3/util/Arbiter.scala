@@ -128,6 +128,8 @@ class RRArbiter[T <: Data](gen:T, n: Int, inl: Label, outl: Label)
 class Arbiter[T <: Data](gen: T, n: Int, inl: Label, outl: Label) extends Module {
   val io = IO(new ArbiterIO(gen, n, inl, outl))
 
+  def this(gen: T, n: Int) = this(gen, n, UnknownLabel, UnknownLabel)
+  
   io.chosen := (n-1).asUInt
   io.out.bits := io.in(n-1).bits
   for (i <- n-2 to 0 by -1) {

@@ -22,35 +22,14 @@ abstract class ReadyValidIO[+T <: Data](gen: T, val rdyl: Label=UnknownLabel, va
   val ready = Input(Bool(), rdyl)
   val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
+
   override def _onModuleClose: Unit = {
     super._onModuleClose
     bits match {
       case bx: Record =>
-        for ((name, elt) <- elements.toIndexedSeq.reverse) {
-          if(elt.lbl != null) {
-            elt.lbl.conf match {
-              case lx: HLevel if(lx.id.refSet) =>
-                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name)) 
-                  lx.id.setRef(bx, lx.id.getRef.name)
-              case lx: VLabel if(lx.id.refSet) =>
-                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
-                  lx.id.setRef(bx, lx.id.getRef.name)
-              case lx => 
-            }
-            elt.lbl.integ match {
-              case lx: HLevel if(lx.id.refSet) => 
-                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
-                  lx.id.setRef(bx, lx.id.getRef.name)
-              case lx: VLabel if(lx.id.refSet) =>
-                if(argIsTemp(lx.id.getRef) && (bx.elements contains lx.id.getRef.name))
-                  lx.id.setRef(bx, lx.id.getRef.name)
-              case lx => 
-            }
-          }
-        }
+        nameBitsInLevels(bx, this)
       case _ =>
     }
-
   }
 }
 
@@ -227,6 +206,7 @@ extends Module(override_reset=override_reset) {
   private val full = ptr_match && maybe_full
   private val do_enq = Wire(init=io.enq.fire())
   private val do_deq = Wire(init=io.deq.fire())
+
 
   when (do_enq) {
     ram(enq_ptr.value) := io.enq.bits
