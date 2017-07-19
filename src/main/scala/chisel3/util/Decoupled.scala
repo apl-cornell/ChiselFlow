@@ -85,8 +85,9 @@ class DecoupledIO[+T <: Data](gen: T, rdyl: Label, vall: Label) extends ReadyVal
 {
   override def cloneType: this.type = {
     val ret = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
-    cpy_lbls(ret)
-    bits.cpy_lbls(ret.bits)
+    renameLabelsOfClone(ret)
+    // cpy_lbls(ret)
+    // bits.cpy_lbls(ret.bits)
     ret
   }
   def this(gen: T) = this(gen, UnknownLabel, UnknownLabel)
@@ -110,9 +111,6 @@ object Decoupled
     irr.ready := d.ready
     d
   }
-//  override def cloneType: this.type = {
-//    DeqIO(gen).asInstanceOf[this.type]
-//  }
 }
 
 /** A concrete subclass of ReadyValidIO that promises to not change

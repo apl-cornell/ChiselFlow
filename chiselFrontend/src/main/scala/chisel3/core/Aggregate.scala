@@ -500,6 +500,33 @@ class Bundle extends Record {
     case _ => None
   }
 
+  def elementsRec = {
+    var eltSets = new ListMap[String, Data]
+    eltSets ++= elements
+    elements.map { _._2 } match {
+      case elt: Record => eltSets ++= elt.elements
+      case _ =>
+    }
+    eltSets
+  }
+
+  def renamedDepComp(labelComp: LabelComp, orig: Bundle, clone: Bundle): LabelComp = labelComp match {
+    case lx: HLevel =>
+      val oldElt = orig.elementsRec.find( _._2 == lx.id )
+      if( !oldElt.isEmpty ) {
+        val name = oldElt.get._1
+        HLevel(clone.elements(name))
+      } else { 
+        lx 
+      }
+    case _ => labelComp
+  }
+
+  def renameLabelsOfClone(clone: this.type): Unit =
+    for((name, elt) <- clone.elements)
+      elt.lbl_ = Label(renamedDepComp(elt.lbl_.conf, this, clone),
+        renamedDepComp(elt.lbl_.integ, this, clone))
+
   override def cloneType : this.type = {
     // If the user did not provide a cloneType method, try invoking one of
     // the following constructors, not all of which necessarily exist:
@@ -508,7 +535,7 @@ class Bundle extends Record {
     // - A one-parameter constructor for a nested Bundle, with the enclosing
     //   parent Module as the argument
     val constructor = this.getClass.getConstructors.head
-    try {
+    val dataClone: this.type = try {
       val args = Seq.fill(constructor.getParameterTypes.size)(null)
       val ret = constructor.newInstance(args:_*).asInstanceOf[this.type]
       cpy_lbls(ret)
@@ -529,6 +556,8 @@ class Bundle extends Record {
         Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method")
         this
     }
+    renameLabelsOfClone(dataClone)
+    dataClone
   }
 
   override def cpy_lbls(that: this.type): Unit = {
