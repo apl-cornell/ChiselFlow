@@ -514,8 +514,9 @@ class Bundle extends Record {
     case lx: HLevel =>
       val oldElt = orig.elementsRec.find( _._2 == lx.id )
       if( !oldElt.isEmpty ) {
-        val name = oldElt.get._1
-        HLevel(clone.elements(name))
+        val newElt = clone.elementsRec(oldElt.get._1)
+        HLevel.update(newElt, lx)
+        lx
       } else { 
         lx 
       }

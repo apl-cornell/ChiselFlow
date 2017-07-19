@@ -53,9 +53,36 @@ object FunLabel{
   def apply(fname: String, ids: HasId*) =
     new FunLabel(fname, ids.toList)
 }
+/*
 case class HLevel(id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]H"
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
+}
+*/
+
+class HLevel private(var id: HasId) extends LabelComp {
+  def name = s"[[${id.getRef.name}]]H"
+  def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
+  override def equals(that: Any) = that match {
+    case lx: HLevel => lx.id == this.id
+    case _ => false
+  }
+  override def hashCode = id.hashCode
+}
+
+object HLevel {
+  private val hlevels = new scala.collection.mutable.HashMap[HasId, HLevel]
+  def apply(id: HasId): HLevel = {
+    if(!(hlevels contains id))
+      hlevels(id) = new HLevel(id)
+    hlevels(id)
+  }
+  def unapply(hl: HLevel) = Some(hl.id)
+  def update(id: HasId, hl: HLevel) {
+    hlevels -= hl.id
+    hl.id = id
+    hlevels(id) = hl 
+  }
 }
 
 case class VLabel(id: HasId) extends LabelComp {
