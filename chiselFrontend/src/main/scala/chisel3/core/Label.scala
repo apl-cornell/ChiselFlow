@@ -63,11 +63,13 @@ case class HLevel(id: HasId) extends LabelComp {
 class HLevel private(var id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]H"
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
+  /*
   override def equals(that: Any) = that match {
     case lx: HLevel => lx.id == this.id
     case _ => false
   }
   override def hashCode = id.hashCode
+  */
 }
 
 object HLevel {
@@ -78,10 +80,13 @@ object HLevel {
     hlevels(id)
   }
   def unapply(hl: HLevel) = Some(hl.id)
-  def update(id: HasId, hl: HLevel) {
-    hlevels -= hl.id
-    hl.id = id
-    hlevels(id) = hl 
+  private[chisel3] def replace(oldId: HasId, newId: HasId) {
+    if(hlevels contains oldId) {
+      val oldHLevel = hlevels(oldId)
+      oldHLevel.id = newId
+      hlevels -= oldId
+      hlevels(newId) = oldHLevel
+    }
   }
 }
 

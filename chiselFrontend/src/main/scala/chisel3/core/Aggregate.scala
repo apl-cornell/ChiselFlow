@@ -510,23 +510,9 @@ class Bundle extends Record {
     eltSets
   }
 
-  def renamedDepComp(labelComp: LabelComp, orig: Bundle, clone: Bundle): LabelComp = labelComp match {
-    case lx: HLevel =>
-      val oldElt = orig.elementsRec.find( _._2 == lx.id )
-      if( !oldElt.isEmpty ) {
-        val newElt = clone.elementsRec(oldElt.get._1)
-        HLevel.update(newElt, lx)
-        lx
-      } else { 
-        lx 
-      }
-    case _ => labelComp
-  }
-
   def renameLabelsOfClone(clone: this.type): Unit =
-    for((name, elt) <- clone.elements)
-      elt.lbl_ = Label(renamedDepComp(elt.lbl_.conf, this, clone),
-        renamedDepComp(elt.lbl_.integ, this, clone))
+    for( (name, elt) <- elements )
+      HLevel.replace(elt, clone.elements.find( _._1 == name).get._2)
 
   override def cloneType : this.type = {
     // If the user did not provide a cloneType method, try invoking one of
