@@ -510,9 +510,14 @@ class Bundle extends Record {
     eltSets
   }
 
+  /*
   def renameLabelsOfClone(clone: this.type): Unit =
     for( (name, elt) <- elements )
       HLevel.replace(elt, clone.elements.find( _._1 == name).get._2)
+  */
+
+  def renameLabelsOfClone(clone: this.type) : Unit =  {
+  }
 
   override def cloneType : this.type = {
     // If the user did not provide a cloneType method, try invoking one of

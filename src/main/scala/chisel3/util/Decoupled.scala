@@ -163,8 +163,7 @@ class QueueIO[T <: Data](gen: T, entries: Int, inl: Label = UnknownLabel,
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]] flipped */
   val enq = DeqIO(gen, inl, inl)
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]]*/
-  val out_gen_ = out_gen.getOrElse(gen)
-  val deq = EnqIO(out_gen_, outl, outl)
+  val deq = EnqIO(out_gen.getOrElse(gen), outl, outl)
   /** The current amount of data in the queue */
   //For now label the count the same level as the output's level
   val count = Output(UInt(log2Up(entries + 1).W), lbl=outl)

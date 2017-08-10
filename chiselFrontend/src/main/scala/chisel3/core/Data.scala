@@ -151,6 +151,10 @@ abstract class Data extends HasId with HasLabel{
   protected[chisel3] var lbl_ : Label = UnknownLabel
   def lbl = lbl_
 
+  def setLabel(lb: Label): Unit = {
+    lbl_ = lb
+  }
+
   private[core] def badConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit =
     throwException(s"cannot connect ${this} and ${that}")
   private[chisel3] def connect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit = {
