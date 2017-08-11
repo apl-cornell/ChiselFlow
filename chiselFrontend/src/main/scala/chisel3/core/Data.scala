@@ -59,8 +59,11 @@ object Output {
   }
 }
 object Flipped {
-  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T =
-    apply(source, UnknownLabel)
+  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T = {
+    val target = source.chiselCloneType
+    Data.setFirrtlDirection(target, Data.getFirrtlDirection(source).flip)
+    Binding.bind(target, FlippedBinder, "Error: Cannot flip ")
+  }
 
   def apply[T<:Data](source: T, lbl: Label)(implicit compileOptions: CompileOptions): T = {
     val target = source.chiselCloneType

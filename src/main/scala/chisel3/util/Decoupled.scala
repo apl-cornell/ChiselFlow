@@ -144,31 +144,25 @@ object Irrevocable
 }
 
 object EnqIO {
-  def apply[T<:Data](gen: T, rdyl: Label = UnknownLabel, vall: Label=UnknownLabel): DecoupledIO[T] = Decoupled(gen, rdyl, vall)
+  def apply[T<:Data](gen: T): DecoupledIO[T] = Decoupled(gen)
 }
 object DeqIO {
-  def apply[T<:Data](gen: T, rdyl: Label = UnknownLabel, vall: Label=UnknownLabel): DecoupledIO[T] = Flipped(Decoupled(gen, rdyl, vall))
+  def apply[T<:Data](gen: T): DecoupledIO[T] = Flipped(Decoupled(gen))
 }
 
 /** An I/O Bundle for Queues
   * @param gen The type of data to queue
-  * @param out_gen The type of the output of the queue
-  * @param entries The max number of entries in the queue
-  * @param inl The label of the queue's input
-  * @param outl The label of the queue's output*/
-class QueueIO[T <: Data](gen: T, entries: Int, inl: Label = UnknownLabel,
-    outl: Label = UnknownLabel, out_gen: Option[T] = None) extends Bundle
+  * @param entries The max number of entries in the queue */
+class QueueIO[T <: Data](gen: T, entries: Int) extends Bundle
 {
-  //For some reason, the Enq and Deq names are flipped....
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]] flipped */
-  val enq = DeqIO(gen, inl, inl)
+  val enq = DeqIO(gen)
   /** I/O to enqueue data, is [[Chisel.DecoupledIO]]*/
-  val deq = EnqIO(out_gen.getOrElse(gen), outl, outl)
+  val deq = EnqIO(gen)
   /** The current amount of data in the queue */
-  //For now label the count the same level as the output's level
-  val count = Output(UInt(log2Up(entries + 1).W), lbl=outl)
+  val count = Output(UInt(log2Up(entries + 1).W))
 
-  override def cloneType = new QueueIO(gen, entries, inl, outl, out_gen).asInstanceOf[this.type]
+  override def cloneType = new QueueIO(gen, entries).asInstanceOf[this.type]
 }
 
 /** A hardware module implementing a Queue
@@ -178,8 +172,6 @@ class QueueIO[T <: Data](gen: T, entries: Int, inl: Label = UnknownLabel,
   * combinationally coupled.
   * @param flow True if the inputs can be consumed on the same cycle (the inputs "flow" through the queue immediately).
   * The ''valid'' signals are coupled.
-  * @param inl The label of the queue's input
-  * @param outl The label of the queue's output
   *
   * @example {{{
   * val q = new Queue(UInt(), 16)
@@ -191,14 +183,10 @@ class Queue[T <: Data](gen: T,
                        val entries: Int,
                        pipe: Boolean = false,
                        flow: Boolean = false,
-                       override_reset: Option[Bool] = None,
-                       inl: Label = UnknownLabel,
-                       outl: Label = UnknownLabel,
-                       out_gen: Option[T] = None)
+                       override_reset: Option[Bool] = None)
 extends Module(override_reset=override_reset) {
-  def this(gen: T, entries: Int, pipe: Boolean, flow: Boolean, _reset: Bool, inl: Label, outl: Label, out_gen: T) = this(gen, entries, pipe, flow, Some(_reset), inl, outl, Some(out_gen))
-  
-  val io = IO(new QueueIO(gen, entries, inl, outl, out_gen))
+
+  val io = IO(new QueueIO(gen, entries))
 
   private val ram = Mem(entries, gen)
   private val enq_ptr = Counter(entries)
@@ -270,13 +258,8 @@ object Queue
       enq: ReadyValidIO[T],
       entries: Int = 2,
       pipe: Boolean = false,
-      flow: Boolean = false,
-      inl: Label = UnknownLabel,
-      outl: Label = UnknownLabel,
-      deq: Option[ReadyValidIO[T]] = None): DecoupledIO[T] = {
-
-    val deq_ = deq.getOrElse(enq)
-    val q = Module(new Queue(enq.bits.cloneType, entries, pipe, flow, inl = inl, outl = outl, out_gen = Some(deq_.bits.cloneType)))
+      flow: Boolean = false): DecoupledIO[T] = {
+    val q = Module(new Queue(enq.bits.cloneType, entries, pipe, flow))
     q.io.enq.valid := enq.valid // not using <> so that override is allowed
     q.io.enq.bits := enq.bits
     enq.ready := q.io.enq.ready
@@ -293,7 +276,6 @@ object Queue
       entries: Int = 2,
       pipe: Boolean = false,
       flow: Boolean = false): IrrevocableIO[T] = {
-    //This module isn't really used in labeling yet, so just use enq type as the deq.
     val deq = apply(enq, entries, pipe, flow)
     val irr = Wire(new IrrevocableIO(deq.bits))
     irr.bits := deq.bits
@@ -302,14 +284,3 @@ object Queue
     irr
   }
 }
-
-/**
- * Factory for constructing a labeled queue that has an deq type specified
- * */
-//object LabeledQueue
-//{
-//  /** Create a queue and supply a DecoupledIO containing the product. */
-//  def apply[T <: Data](
-//    enq: ReadyValidIO[T],
-//    deq: ReadyValidIO[T],
-//
