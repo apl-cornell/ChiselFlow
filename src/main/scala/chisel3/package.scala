@@ -35,6 +35,7 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val MeetLabelComp = chisel3.core.MeetLabelComp
   val Declassify = chisel3.core.Declassify
   val Endorse = chisel3.core.Endorse
+  val Next = chisel3.core.Next
   
   // Components
   val C = chisel3.core.C

@@ -263,6 +263,7 @@ abstract class Definition extends Command {
 case class DefPrim[T <: Data](sourceInfo: SourceInfo, id: T, op: PrimOp, args: Arg*) extends Definition
 case class DefDeclass[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg, lbl: Label) extends Definition
 case class DefEndorse[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg, lbl: Label) extends Definition
+case class DefNext[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg) extends Definition
 case class DefInvalid(sourceInfo: SourceInfo, arg: Arg) extends Command
 case class DefWire(sourceInfo: SourceInfo, id: Data, lbl: Label) extends Definition
 case class DefReg(sourceInfo: SourceInfo, id: Data, clock: Arg, lbl: Label) extends Definition

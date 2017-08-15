@@ -32,6 +32,8 @@ private class Emitter(circuit: Circuit, compileTopOnly: Boolean) {
       case e: DefEndorse[_] => 
         val lbl_s = e.lbl.fullName(ctx)
         s"node ${e.name} ${lbl_s} = endorse(${e.arg.fullName(ctx)}, ${lbl_s})"
+      case e: DefNext[_] =>
+        s"node ${e.name} = next(${e.arg.fullName(ctx)})"
       case e: DefWire => s"wire ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}"
       case e: DefReg => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}, ${e.clock.fullName(ctx)}"
       case e: DefRegInit => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"

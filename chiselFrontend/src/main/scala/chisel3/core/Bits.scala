@@ -5,10 +5,10 @@ package chisel3.core
 import scala.language.experimental.macros
 
 import chisel3.internal._
-import chisel3.internal.Builder.{pushCommand, pushOp, pushDeclass, pushEndorse}
+import chisel3.internal.Builder.{pushCommand, pushOp, pushDeclass, pushEndorse, pushNext}
 import chisel3.internal.firrtl._
 import chisel3.internal.sourceinfo.{SourceInfo, DeprecatedSourceInfo, SourceInfoTransform, SourceInfoWhiteboxTransform,
-  UIntTransform, MuxTransform, DeclassifyTransform, EndorseTransform}
+  UIntTransform, MuxTransform, DeclassifyTransform, EndorseTransform, NextTransform}
 import chisel3.internal.firrtl.PrimOp._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
@@ -787,6 +787,14 @@ object Endorse {
   def do_apply[T <: Data](arg: T, lbl: Label)(implicit sourceInfo: SourceInfo): T = {
     val dtype = arg.cloneType
     pushEndorse(DefEndorse(sourceInfo, dtype, arg.ref, lbl))
+  }
+}
+
+object Next {
+  def apply[T <: Data](arg: T): T = macro NextTransform.apply[T]
+  def do_apply[T <: Data](arg: T)(implicit sourceInfo: SourceInfo): T = {
+    val dtype = arg.cloneType
+    pushNext(DefNext(sourceInfo, dtype, arg.ref))
   }
 }
 

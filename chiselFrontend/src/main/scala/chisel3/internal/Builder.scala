@@ -218,6 +218,12 @@ private[chisel3] object Builder {
     pushCommand(cmd).id
   }
 
+  def pushNext[ T <: Data](cmd: DefNext[T]): T = {
+    // Bind each element of the returned Data to being a Op
+    Binding.bind(cmd.id, OpBinder(forcedModule), "Error: During op creation, fresh result")
+    pushCommand(cmd).id
+  }
+
   def errors: ErrorLog = dynamicContext.errors
   def error(m: => String): Unit = errors.error(m)
   def warning(m: => String): Unit = errors.warning(m)

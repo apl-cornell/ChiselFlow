@@ -83,6 +83,14 @@ class EndorseTransform(val c: Context) extends SourceInfoTransformMacro {
   }
 }
 
+class NextTransform(val c: Context) extends SourceInfoTransformMacro {
+  import c.universe._
+  def apply[T: c.WeakTypeTag](arg: c.Tree): c.Tree = {
+    val tpe = weakTypeOf[T]
+    q"$thisObj.do_apply[$tpe]($arg)($implicitSourceInfo)"
+  }
+}
+
 class MuxTransform(val c: Context) extends SourceInfoTransformMacro {
   import c.universe._
   def apply[T: c.WeakTypeTag](cond: c.Tree, con: c.Tree, alt: c.Tree): c.Tree = {
