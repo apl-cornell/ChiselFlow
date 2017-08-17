@@ -120,6 +120,11 @@ case class Index(imm: Arg, value: Arg) extends Arg {
   override def fullName(ctx: Component): String = s"${imm.fullName(ctx)}[${value.fullName(ctx)}]"
   def pprint = s"Index(${imm.name}, ${value.name})"
 }
+case class BindIndex(imm: Arg) extends Arg {
+  def name: String = s"[_]"
+  override def fullName(ctx: Component): String = s"${imm.fullName(ctx)}[_]"
+  def pprint = s"Index(${imm.name}, _)"
+}
 
 sealed trait Bound
 sealed trait NumericBound[T] extends Bound {

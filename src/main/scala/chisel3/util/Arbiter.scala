@@ -24,7 +24,7 @@ class ArbiterIO[T <: Data](gen: T, out_gen: T, n: Int, inl: Label, outl: Label) 
 
 /** Arbiter Control determining which producer has access
   */
-private object ArbiterCtrl {
+object ArbiterCtrl {
   def apply(request: Seq[Bool]): Seq[Bool] = request.length match {
     case 0 => Seq()
     case 1 => Seq(true.B)

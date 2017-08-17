@@ -265,7 +265,7 @@ sealed class Vec[T <: Data] private (gen: => T, val length: Int)
   }
 
   override def _onModuleClose: Unit = {
-    sample_element.setRef(this, 0)
+    sample_element.setRefBinder(this)
   }
 }
 
@@ -584,6 +584,7 @@ trait BitsLevelNamer {
     case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
     case ax: Node => !ax.id.refSet || strTmp(ax.name)
     case ax: LitArg => false
+    case ax: BindIndex => argIsTemp(ax.imm)
   }
 
 
