@@ -44,7 +44,7 @@ object Vec {
     * @note elements are NOT assigned by default and have no value
     */
   def apply[T <: Data](n: Int, gen: T): Vec[T] = macro VecTransform.apply_ngen;
-
+  
   def do_apply[T <: Data](n: Int, gen: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Vec[T] = {
     if ( gen.isLit ) {
       Vec(Seq.fill(n)(gen))
@@ -152,6 +152,24 @@ object Vec {
   }
 }
 
+class MonoLabelVec[T <: Data](gen: => T, length: Int) extends Vec[T](gen, length) {
+  override def _onModuleClose: Unit = {
+    sample_element.setRef(this, 0)
+  }
+  
+  override def cloneType: this.type = {
+    new MonoLabelVec(gen.cloneType, length).asInstanceOf[this.type]
+  }
+}
+
+object MonoLabelVec {
+  def apply[T <: Data](n: Int, gen: T): Vec[T] = macro VecTransform.apply_ngen;
+  
+  def do_apply[T <: Data](n: Int, gen: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Vec[T] = {
+      new MonoLabelVec(gen.chiselCloneType, n)
+  }
+}
+
 /** A vector (array) of [[Data]] elements. Provides hardware versions of various
   * collection transformation functions found in software array implementations.
   *
@@ -161,8 +179,9 @@ object Vec {
   * @note Vecs, unlike classes in Scala's collection library, are propagated
   * intact to FIRRTL as a vector type, which may make debugging easier
   */
-sealed class Vec[T <: Data] private (gen: => T, val length: Int)
+sealed class Vec[T <: Data] protected (gen: => T, val length: Int)
     extends Aggregate with VecLike[T] {
+
   // Note: the constructor takes a gen() function instead of a Seq to enforce
   // that all elements must be the same and because it makes FIRRTL generation
   // simpler.
