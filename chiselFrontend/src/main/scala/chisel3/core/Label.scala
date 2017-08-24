@@ -90,6 +90,12 @@ object HLevel {
   }
 }
 
+case class IfL(id: HasId)(tc: LabelComp)(fc: LabelComp) extends LabelComp {
+  def name = s"IFL(${id.getRef.name})(${tc.name})(${fc.name})"
+  def fullName(ctx: Component) =
+    s"IFL(${id.getRef.fullName(ctx)})(${tc.fullName(ctx)})(${fc.fullName(ctx)})"
+}
+
 case class VLabel(id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]V"
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]V"
