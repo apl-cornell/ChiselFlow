@@ -9,17 +9,28 @@ import chisel3._
 // TODO: remove this once we have CompileOptions threaded through the macro system.
 import chisel3.core.ExplicitCompileOptions.NotStrict
 
+import chisel3.core.{HLevel, VLabel}
+
 /** An I/O Bundle containing 'valid' and 'ready' signals that handshake
   * the transfer of data stored in the 'bits' subfield.
   * The base protocol implied by the directionality is that the consumer
   * uses the flipped interface. Actual semantics of ready/valid are
   * enforced via use of concrete subclasses.
   */
-abstract class ReadyValidIO[+T <: Data](gen: T) extends Bundle
+abstract class ReadyValidIO[+T <: Data](gen: T, val rdyl: Label=UnknownLabel, val vall: Label=UnknownLabel) extends Bundle
 {
-  val ready = Input(Bool())
-  val valid = Output(Bool())
+  val ready = Input(Bool(), rdyl)
+  val valid = Output(Bool(), vall)
   val bits  = Output(gen.chiselCloneType)
+
+  override def _onModuleClose: Unit = {
+    super._onModuleClose
+    bits match {
+      case bx: Record =>
+        nameBitsInLevels(bx, this)
+      case _ =>
+    }
+  }
 }
 
 object ReadyValidIO {
@@ -70,16 +81,23 @@ object ReadyValidIO {
   * to accept the data this cycle. No requirements are placed on the signaling
   * of ready or valid.
   */
-class DecoupledIO[+T <: Data](gen: T) extends ReadyValidIO[T](gen)
+class DecoupledIO[+T <: Data](gen: T, rdyl: Label, vall: Label) extends ReadyValidIO[T](gen, rdyl, vall)
 {
-  override def cloneType: this.type = new DecoupledIO(gen).asInstanceOf[this.type]
+  override def cloneType: this.type = {
+    val ret = new DecoupledIO(gen, rdyl, vall).asInstanceOf[this.type]
+    renameLabelsOfClone(ret)
+    // cpy_lbls(ret)
+    // bits.cpy_lbls(ret.bits)
+    ret
+  }
+  def this(gen: T) = this(gen, UnknownLabel, UnknownLabel)
 }
 
 /** This factory adds a decoupled handshaking protocol to a data bundle. */
 object Decoupled
 {
   /** Wraps some Data with a DecoupledIO interface. */
-  def apply[T <: Data](gen: T): DecoupledIO[T] = new DecoupledIO(gen)
+  def apply[T <: Data](gen: T, rdyl: Label = UnknownLabel, vall: Label = UnknownLabel): DecoupledIO[T] = new DecoupledIO(gen, rdyl, vall)
 
   /** Downconverts an IrrevocableIO output to a DecoupledIO, dropping guarantees of irrevocability.
     *
@@ -93,9 +111,6 @@ object Decoupled
     irr.ready := d.ready
     d
   }
-//  override def cloneType: this.type = {
-//    DeqIO(gen).asInstanceOf[this.type]
-//  }
 }
 
 /** A concrete subclass of ReadyValidIO that promises to not change
@@ -170,8 +185,6 @@ class Queue[T <: Data](gen: T,
                        flow: Boolean = false,
                        override_reset: Option[Bool] = None)
 extends Module(override_reset=override_reset) {
-  def this(gen: T, entries: Int, pipe: Boolean, flow: Boolean, _reset: Bool) =
-    this(gen, entries, pipe, flow, Some(_reset))
 
   val io = IO(new QueueIO(gen, entries))
 
@@ -185,6 +198,7 @@ extends Module(override_reset=override_reset) {
   private val full = ptr_match && maybe_full
   private val do_enq = Wire(init=io.enq.fire())
   private val do_deq = Wire(init=io.deq.fire())
+
 
   when (do_enq) {
     ram(enq_ptr.value) := io.enq.bits

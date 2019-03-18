@@ -14,11 +14,35 @@ package object Chisel {     // scalastyle:ignore package.object.name
   implicit val defaultCompileOptions = chisel3.core.ExplicitCompileOptions.NotStrict
   type Direction = chisel3.core.Direction
 
+  type Label = chisel3.core.Label
+  val Label = chisel3.core.Label
+  val UnknownLabel = chisel3.core.UnknownLabel
+  val UnknownLabelComp = chisel3.core.UnknownLabelComp
+  val Level = chisel3.core.Level
+  val FunLabel = chisel3.core.FunLabel
+  val HLevel = chisel3.core.HLevel
+  val VLabel = chisel3.core.VLabel
+  val JoinLabelComp = chisel3.core.JoinLabelComp
+  val MeetLabelComp = chisel3.core.MeetLabelComp
+  val Declassify = chisel3.core.Declassify
+  val Endorse = chisel3.core.Endorse
+  val Next = chisel3.core.Next
+
+
+  // Not originally part of compatibility.scala
+  val Input   = chisel3.core.Input
+  val Output  = chisel3.core.Output
+  
+  // Components
+  val C = chisel3.core.C
+  val I = chisel3.core.I
+
   val INPUT = chisel3.core.Direction.Input
   val OUTPUT = chisel3.core.Direction.Output
   val NODIR = chisel3.core.Direction.Unspecified
   object Flipped {
     def apply[T<:Data](target: T): T = chisel3.core.Flipped[T](target)
+    def apply[T<:Data](target: T, lbl: Label): T = chisel3.core.Flipped[T](target, lbl)
   }
   // TODO: Possibly move the AddDirectionToData class here?
   implicit class AddDirMethodToData[T<:Data](val target: T) extends AnyVal {
@@ -41,6 +65,8 @@ package object Chisel {     // scalastyle:ignore package.object.name
   val Vec = chisel3.core.Vec
   type Vec[T <: Data] = chisel3.core.Vec[T]
   type VecLike[T <: Data] = chisel3.core.VecLike[T]
+  val MonoLabelVec = chisel3.core.MonoLabelVec
+  type MonoLabelVec[T <: Data] = chisel3.core.MonoLabelVec[T]
   type Record = chisel3.core.Record
   type Bundle = chisel3.core.Bundle
 
@@ -71,11 +97,12 @@ package object Chisel {     // scalastyle:ignore package.object.name
     def apply(dir: Direction, width: Int): UInt = apply(dir, width.W)
     /** Create a UInt with a specified direction, but unspecified width - compatibility with Chisel2. */
     def apply(dir: Direction): UInt = apply(dir, Width())
-    def apply(dir: Direction, width: Width): UInt = {
-      val result = apply(width)
+    def apply(dir: Direction, width: Width): UInt = apply(dir, width, UnknownLabel)
+    def apply(dir: Direction, width: Width, lbl:Label): UInt = {
+      val result = apply(width, lbl)
       dir match {
-        case chisel3.core.Direction.Input => chisel3.core.Input(result)
-        case chisel3.core.Direction.Output => chisel3.core.Output(result)
+        case chisel3.core.Direction.Input => chisel3.core.Input(result, lbl)
+        case chisel3.core.Direction.Output => chisel3.core.Output(result, lbl)
         case chisel3.core.Direction.Unspecified => result
       }
     }
@@ -130,11 +157,11 @@ package object Chisel {     // scalastyle:ignore package.object.name
     def apply(x: Boolean): Bool = x.B
 
     /** Create a UInt with a specified direction and width - compatibility with Chisel2. */
-    def apply(dir: Direction): Bool = {
-      val result = apply()
+    def apply(dir: Direction, lbl:Label=UnknownLabel): Bool = {
+      val result = apply(lbl)
       dir match {
-        case chisel3.core.Direction.Input => chisel3.core.Input(result)
-        case chisel3.core.Direction.Output => chisel3.core.Output(result)
+        case chisel3.core.Direction.Input => chisel3.core.Input(result, lbl)
+        case chisel3.core.Direction.Output => chisel3.core.Output(result, lbl)
         case chisel3.core.Direction.Unspecified => result
       }
     }

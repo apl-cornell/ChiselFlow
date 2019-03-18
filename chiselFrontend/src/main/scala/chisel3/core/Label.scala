@@ -53,9 +53,52 @@ object FunLabel{
   def apply(fname: String, ids: HasId*) =
     new FunLabel(fname, ids.toList)
 }
+/*
 case class HLevel(id: HasId) extends LabelComp {
   def name = s"[[${id.getRef.name}]]H"
   def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
+}
+*/
+
+class HLevel private(var id: HasId) extends LabelComp {
+  def name = s"[[${id.getRef.name}]]H"
+  def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]H"
+  /*
+  override def equals(that: Any) = that match {
+    case lx: HLevel => lx.id == this.id
+    case _ => false
+  }
+  override def hashCode = id.hashCode
+  */
+}
+
+object HLevel {
+  private val hlevels = new scala.collection.mutable.HashMap[HasId, HLevel]
+  def apply(id: HasId): HLevel = {
+    if(!(hlevels contains id))
+      hlevels(id) = new HLevel(id)
+    hlevels(id)
+  }
+  def unapply(hl: HLevel) = Some(hl.id)
+  private[chisel3] def replace(oldId: HasId, newId: HasId) {
+    if(hlevels contains oldId) {
+      val oldHLevel = hlevels(oldId)
+      oldHLevel.id = newId
+      hlevels -= oldId
+      hlevels(newId) = oldHLevel
+    }
+  }
+}
+
+case class IfL(id: HasId)(tc: LabelComp)(fc: LabelComp) extends LabelComp {
+  def name = s"IFL(${id.getRef.name})(${tc.name})(${fc.name})"
+  def fullName(ctx: Component) =
+    s"IFL(${id.getRef.fullName(ctx)})(${tc.fullName(ctx)})(${fc.fullName(ctx)})"
+}
+
+case class VLabel(id: HasId) extends LabelComp {
+  def name = s"[[${id.getRef.name}]]V"
+  def fullName(ctx: Component) = s"[[${id.getRef.fullName(ctx)}]]V"
 }
 
 object C {
@@ -77,5 +120,13 @@ object I {
 }
 
 // These are not parsed by sFIRRTL and are only used internally
-// case class JoinLabel(l: Label, r: Label) extends Label
+case class JoinLabelComp(l: LabelComp, r: LabelComp) extends LabelComp {
+  def name = s"${l.name} join ${r.name}"
+  def fullName(ctx: Component) = s"${l.fullName(ctx)} join ${r.fullName(ctx)}"
+}
+
+case class MeetLabelComp(l: LabelComp, r: LabelComp) extends LabelComp {
+  def name = s"${l.name} meet ${r.name}"
+  def fullName(ctx: Component) = s"${l.fullName(ctx)} meet ${r.fullName(ctx)}"
+}
 // case class MeetLabel(l: Label, r: Label) extends Label

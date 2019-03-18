@@ -44,7 +44,7 @@ object Vec {
     * @note elements are NOT assigned by default and have no value
     */
   def apply[T <: Data](n: Int, gen: T): Vec[T] = macro VecTransform.apply_ngen;
-
+  
   def do_apply[T <: Data](n: Int, gen: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Vec[T] = {
     if ( gen.isLit ) {
       Vec(Seq.fill(n)(gen))
@@ -152,6 +152,24 @@ object Vec {
   }
 }
 
+class MonoLabelVec[T <: Data](gen: => T, length: Int) extends Vec[T](gen, length) {
+  override def _onModuleClose: Unit = {
+    sample_element.setRef(this, 0)
+  }
+  
+  override def cloneType: this.type = {
+    new MonoLabelVec(gen.cloneType, length).asInstanceOf[this.type]
+  }
+}
+
+object MonoLabelVec {
+  def apply[T <: Data](n: Int, gen: T): Vec[T] = macro VecTransform.apply_ngen;
+  
+  def do_apply[T <: Data](n: Int, gen: T)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Vec[T] = {
+      new MonoLabelVec(gen.chiselCloneType, n)
+  }
+}
+
 /** A vector (array) of [[Data]] elements. Provides hardware versions of various
   * collection transformation functions found in software array implementations.
   *
@@ -161,8 +179,9 @@ object Vec {
   * @note Vecs, unlike classes in Scala's collection library, are propagated
   * intact to FIRRTL as a vector type, which may make debugging easier
   */
-sealed class Vec[T <: Data] private (gen: => T, val length: Int)
+sealed class Vec[T <: Data] protected (gen: => T, val length: Int)
     extends Aggregate with VecLike[T] {
+
   // Note: the constructor takes a gen() function instead of a Seq to enforce
   // that all elements must be the same and because it makes FIRRTL generation
   // simpler.
@@ -244,6 +263,9 @@ sealed class Vec[T <: Data] private (gen: => T, val length: Int)
   }
 
   private[chisel3] def toType: String = s"${sample_element.toType}[$length]"
+  private[chisel3] override def toType(ctx: Component): String =  {
+    s"${sample_element.toType(ctx)}[$length]"
+  }
   private[chisel3] lazy val flatten: IndexedSeq[Bits] =
     (0 until length).flatMap(i => this.apply(i).flatten)
 
@@ -259,6 +281,10 @@ sealed class Vec[T <: Data] private (gen: => T, val length: Int)
       if (length == 0) List.empty[Printable]
       else self flatMap (e => List(e.toPrintable, PString(", "))) dropRight 1
     PString("Vec(") + Printables(elts) + PString(")")
+  }
+
+  override def _onModuleClose: Unit = {
+    sample_element.setRefBinder(this)
   }
 }
 
@@ -347,7 +373,7 @@ trait VecLike[T <: Data] extends collection.IndexedSeq[T] with HasId {
   * Record should only be extended by libraries and fairly sophisticated generators.
   * RTL writers should use [[Bundle]].
   */
-abstract class Record extends Aggregate {
+abstract class Record extends Aggregate with BitsLevelNamer {
 
   /** The collection of [[Data]]
     *
@@ -385,6 +411,29 @@ abstract class Record extends Aggregate {
     elements.toIndexedSeq.reverse.map(e => eltPort(e._2)).mkString("{", ", ", "}")
   }
 
+  def slotsToNames(arg: Arg): Seq[String] =  {
+    type Names = scala.collection.mutable.LinkedHashSet[String]
+    val names = new scala.collection.mutable.LinkedHashSet[String]
+    def slotsToSeq_(names: Names)(arg: Arg): Arg = arg match {
+      case ax: Slot => names += ax.name; slotsToSeq_(names)(ax.imm)
+      case ax: Node => slotsToSeq_(names)(ax.id.getRef)
+      case ax: Index => slotsToSeq_(names)(ax.imm)
+      case ax => ax
+    }
+    slotsToSeq_(names)(arg)
+    names.toSeq.reverse
+  }
+
+  def namesToElt(names: Seq[String]): Data = {
+    var elt: Data = this
+    for(name <- names) elt match {
+      case ax: Record => 
+        if(ax.elements contains name) elt = ax.elements(name)
+      case _ => 
+    }
+    elt
+  }
+  
   private[chisel3] lazy val flatten = elements.toIndexedSeq.flatMap(_._2.flatten)
 
   // NOTE: This sets up dependent references, it can be done before closing the Module
@@ -393,7 +442,11 @@ abstract class Record extends Aggregate {
     // identifier; however, Namespace sanitizes identifiers to make them legal for Firrtl/Verilog
     // which can cause collisions
     val _namespace = Namespace.empty
-    for ((name, elt) <- elements) { elt.setRef(this, _namespace.name(name)) }
+    
+    for ((name, elt) <- elements.toIndexedSeq.reverse) { 
+      elt.setRef(this, _namespace.name(name))
+    }
+
   }
 
   private[chisel3] final def allElements: Seq[Element] = elements.toIndexedSeq.flatMap(_._2.allElements)
@@ -442,11 +495,12 @@ class Bundle extends Record {
   final lazy val elements: ListMap[String, Data] = {
     val nameMap = LinkedHashMap[String, Data]()
     val seen = HashSet[Data]()
+    def isShadow(s:String) = s contains "shdw"
     for (m <- getPublicFields(classOf[Bundle])) {
       getBundleField(m) foreach { d =>
         if (nameMap contains m.getName) {
           require(nameMap(m.getName) eq d)
-        } else if (!seen(d)) {
+        } else if (!seen(d) && !isShadow(m.getName)) {
           nameMap(m.getName) = d
           seen += d
         }
@@ -454,6 +508,7 @@ class Bundle extends Record {
     }
     ListMap(nameMap.toSeq sortWith { case ((an, a), (bn, b)) => (a._id > b._id) || ((a eq b) && (an > bn)) }: _*)
   }
+
 
   /** Returns a field's contained user-defined Bundle element if it appears to
     * be one, otherwise returns None.
@@ -464,6 +519,25 @@ class Bundle extends Record {
     case _ => None
   }
 
+  def elementsRec = {
+    var eltSets = new ListMap[String, Data]
+    eltSets ++= elements
+    elements.map { _._2 } match {
+      case elt: Record => eltSets ++= elt.elements
+      case _ =>
+    }
+    eltSets
+  }
+
+  /*
+  def renameLabelsOfClone(clone: this.type): Unit =
+    for( (name, elt) <- elements )
+      HLevel.replace(elt, clone.elements.find( _._1 == name).get._2)
+  */
+
+  def renameLabelsOfClone(clone: this.type) : Unit =  {
+  }
+
   override def cloneType : this.type = {
     // If the user did not provide a cloneType method, try invoking one of
     // the following constructors, not all of which necessarily exist:
@@ -472,13 +546,17 @@ class Bundle extends Record {
     // - A one-parameter constructor for a nested Bundle, with the enclosing
     //   parent Module as the argument
     val constructor = this.getClass.getConstructors.head
-    try {
+    val dataClone: this.type = try {
       val args = Seq.fill(constructor.getParameterTypes.size)(null)
-      constructor.newInstance(args:_*).asInstanceOf[this.type]
+      val ret = constructor.newInstance(args:_*).asInstanceOf[this.type]
+      cpy_lbls(ret)
+      ret
     } catch {
       case e: java.lang.reflect.InvocationTargetException if e.getCause.isInstanceOf[java.lang.NullPointerException] =>
         try {
-          constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          val ret = constructor.newInstance(_parent.get).asInstanceOf[this.type]
+          cpy_lbls(ret)
+          ret
         } catch {
           case _: java.lang.reflect.InvocationTargetException | _: java.lang.IllegalArgumentException =>
             Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method. You are probably using " +
@@ -488,6 +566,15 @@ class Bundle extends Record {
       case _: java.lang.reflect.InvocationTargetException | _: java.lang.IllegalArgumentException =>
         Builder.exception(s"Parameterized Bundle ${this.getClass} needs cloneType method")
         this
+    }
+    renameLabelsOfClone(dataClone)
+    dataClone
+  }
+
+  override def cpy_lbls(that: this.type): Unit = {
+    for ((name, elt) <- elements)  {
+      elt.cpy_lbls(that.elements(name).asInstanceOf[elt.type])
+      // that.elements(name).lbl_ = elt.lbl_
     }
   }
 
@@ -503,5 +590,47 @@ class Bundle extends Record {
 private[core] object Bundle {
   val keywords = List("flip", "asInput", "asOutput", "cloneType", "chiselCloneType", "toBits",
     "widthOption", "signalName", "signalPathName", "signalParent", "signalComponent")
+}
+
+
+trait BitsLevelNamer {
+
+  def strTmp(s:String) = s contains "_T_"
+  def argIsTemp(arg: Arg): Boolean = arg match {
+    case ax: Ref => strTmp(ax.name)
+    case ax: ModuleIO => strTmp(ax.name) || strTmp(ax.mod.name)
+    case ax: Slot => !ax.imm.id.refSet || argIsTemp(ax.imm.id.getRef) || strTmp(ax.name)
+    case ax: Index => argIsTemp(ax.imm) || strTmp(ax.name)
+    case ax: Node => !ax.id.refSet || strTmp(ax.name)
+    case ax: LitArg => false
+    case ax: BindIndex => argIsTemp(ax.imm)
+  }
+
+
+  def nameBitsInLevels(namedRecord: Record, outerRecord: Record): Unit = {
+      val nameElts = namedRecord.elements.toIndexedSeq.reverse ++ outerRecord.elements.toIndexedSeq.reverse
+      for ((name, elt) <- nameElts) {
+        if(elt.lbl != null) {
+          elt.lbl.conf match {
+            case lx: HLevel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name)) 
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx: VLabel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx => 
+          }
+          elt.lbl.integ match {
+            case lx: HLevel if(lx.id.refSet) => 
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx: VLabel if(lx.id.refSet) =>
+              if(argIsTemp(lx.id.getRef) && (namedRecord.elements contains lx.id.getRef.name))
+                lx.id.setRef(namedRecord, lx.id.getRef.name)
+            case lx => 
+          }
+        }
+      }
+  }
 }
 

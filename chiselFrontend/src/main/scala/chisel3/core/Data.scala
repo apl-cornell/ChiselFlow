@@ -59,8 +59,11 @@ object Output {
   }
 }
 object Flipped {
-  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T =
-    apply(source, UnknownLabel)
+  def apply[T<:Data](source: T)(implicit compileOptions: CompileOptions): T = {
+    val target = source.chiselCloneType
+    Data.setFirrtlDirection(target, Data.getFirrtlDirection(source).flip)
+    Binding.bind(target, FlippedBinder, "Error: Cannot flip ")
+  }
 
   def apply[T<:Data](source: T, lbl: Label)(implicit compileOptions: CompileOptions): T = {
     val target = source.chiselCloneType
@@ -151,6 +154,10 @@ abstract class Data extends HasId with HasLabel{
   protected[chisel3] var lbl_ : Label = UnknownLabel
   def lbl = lbl_
 
+  def setLabel(lb: Label): Unit = {
+    lbl_ = lb
+  }
+
   private[core] def badConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit =
     throwException(s"cannot connect ${this} and ${that}")
   private[chisel3] def connect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit = {
@@ -162,7 +169,7 @@ abstract class Data extends HasId with HasLabel{
       } catch {
         case MonoConnect.MonoConnectException(message) =>
           throwException(
-            s"Connection between sink ($this) and source ($that) failed @$message"
+            s"Connection between sink ($this) and source ($that) failed @$message si:${sourceInfo.makeMessage(x => x)}"
           )
       }
     } else {
@@ -178,7 +185,7 @@ abstract class Data extends HasId with HasLabel{
       } catch {
         case BiConnect.BiConnectException(message) =>
           throwException(
-            s"Connection between left ($this) and source ($that) failed @$message"
+            s"Connection between left ($this) and source ($that) failed @$message si:${sourceInfo.makeMessage(x => x)}"
           )
       }
     } else {
@@ -192,6 +199,10 @@ abstract class Data extends HasId with HasLabel{
   private[chisel3] def toType(ctx:Component): String = toType
   private[core] def width: Width
   private[core] def legacyConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit
+
+  private[chisel3] def cpy_lbls(that: this.type): Unit = {
+    that.lbl_ = lbl_
+  }
 
   /** cloneType must be defined for any Chisel object extending Data.
     * It is responsible for constructing a basic copy of the object being cloned.

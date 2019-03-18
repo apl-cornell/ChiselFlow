@@ -14,10 +14,10 @@ import chisel3.core.HLevel
 import chisel3.core.Data
 
 private[chisel3] object Emitter {
-  def emit(circuit: Circuit): String = new Emitter(circuit).toString
+  def emit(circuit: Circuit, compileTopOnly: Boolean): String = new Emitter(circuit, compileTopOnly).toString
 }
 
-private class Emitter(circuit: Circuit) {
+private class Emitter(circuit: Circuit, compileTopOnly: Boolean) {
   override def toString: String = res.toString
 
   private def emitPort(e: Port, ctx:Component): String =
@@ -32,11 +32,13 @@ private class Emitter(circuit: Circuit) {
       case e: DefEndorse[_] => 
         val lbl_s = e.lbl.fullName(ctx)
         s"node ${e.name} ${lbl_s} = endorse(${e.arg.fullName(ctx)}, ${lbl_s})"
-      case e: DefWire => s"wire ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}"
-      case e: DefReg => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)}"
-      case e: DefRegInit => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
-      case e: DefMemory => s"cmem ${e.name} : ${e.lbl.fullName(ctx)}${e.t.toType}[${e.size}]"
-      case e: DefSeqMemory => s"smem ${e.name} : ${e.lbl.fullName(ctx)}${e.t.toType}[${e.size}]"
+      case e: DefNext[_] =>
+        s"node ${e.name} = next(${e.arg.fullName(ctx)})"
+      case e: DefWire => s"wire ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}"
+      case e: DefReg => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}, ${e.clock.fullName(ctx)}"
+      case e: DefRegInit => s"reg ${e.name} : ${e.lbl.fullName(ctx)}${e.id.toType(ctx)}, ${e.clock.fullName(ctx)} with : (reset => (${e.reset.fullName(ctx)}, ${e.init.fullName(ctx)}))"
+      case e: DefMemory => s"cmem ${e.name} : ${e.lbl.fullName(ctx)}${e.t.toType(ctx)}[${e.size}]"
+      case e: DefSeqMemory => s"smem ${e.name} : ${e.lbl.fullName(ctx)}${e.t.toType(ctx)}[${e.size}]"
       case e: DefMemPort[_] => s"${e.dir} mport ${e.name} = ${e.source.fullName(ctx)}[${e.index.fullName(ctx)}], ${e.clock.fullName(ctx)}"
       case e: Connect => s"${e.loc.fullName(ctx)} <= ${e.exp.fullName(ctx)}"
       case e: BulkConnect => s"${e.loc1.fullName(ctx)} <- ${e.loc2.fullName(ctx)}"
@@ -98,6 +100,16 @@ private class Emitter(circuit: Circuit) {
     body.toString()
   }
 
+  private def modulePorts(m: Component): String = {
+    val body = new StringBuilder
+    withIndent {
+      for (p <- m.ports)
+        body ++= newline + emitPort(p,m)
+      body ++= newline
+    }
+    body.toString()
+  }
+
   /** Returns the FIRRTL declaration and body of a module, or nothing if it's a
     * duplicate of something already emitted (on the basis of simple string
     * matching).
@@ -110,6 +122,14 @@ private class Emitter(circuit: Circuit) {
     sb.result
   }
 
+  private def emitDecl(m: Component): String = {
+    // Emit just the declaration and ports for modular label-checking.
+    val sb = new StringBuilder
+    sb.append(moduleDecl(m))
+    sb.append(modulePorts(m))
+    sb.result
+  }
+
   private var indentLevel = 0
   private def newline = "\n" + ("  " * indentLevel)
   private def indent(): Unit = indentLevel += 1
@@ -119,6 +139,14 @@ private class Emitter(circuit: Circuit) {
   private val res = new StringBuilder()
   res ++= s";${Driver.chiselVersionString}\n"
   res ++= s"circuit ${circuit.name} : "
-  withIndent { circuit.components.foreach(c => res ++= emit(c)) }
+  if(compileTopOnly) {
+    withIndent { circuit.components.foreach(c => 
+        if(c.name == circuit.name) res ++= emit(c)
+        else res ++= emitDecl(c)
+      )
+    }
+  } else {
+    withIndent { circuit.components.foreach(c => res ++= emit(c)) }
+  }
   res ++= newline
 }

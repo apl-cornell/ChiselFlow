@@ -30,8 +30,13 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   val Level = chisel3.core.Level
   val FunLabel = chisel3.core.FunLabel
   val HLevel = chisel3.core.HLevel
+  val VLabel = chisel3.core.VLabel
+  val JoinLabelComp = chisel3.core.JoinLabelComp
+  val MeetLabelComp = chisel3.core.MeetLabelComp
+  val IfL = chisel3.core.IfL
   val Declassify = chisel3.core.Declassify
   val Endorse = chisel3.core.Endorse
+  val Next = chisel3.core.Next
   
   // Components
   val C = chisel3.core.C
@@ -41,6 +46,8 @@ package object chisel3 {    // scalastyle:ignore package.object.name
   type Aggregate = chisel3.core.Aggregate
   val Vec = chisel3.core.Vec
   type Vec[T <: Data] = chisel3.core.Vec[T]
+  val MonoLabelVec = chisel3.core.MonoLabelVec
+  type MonoLabelVec[T <: Data] = chisel3.core.MonoLabelVec[T]
   type VecLike[T <: Data] = chisel3.core.VecLike[T]
   type Bundle = chisel3.core.Bundle
   type Record = chisel3.core.Record

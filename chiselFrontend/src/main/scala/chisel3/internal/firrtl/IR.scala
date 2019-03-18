@@ -49,14 +49,17 @@ object PrimOp {
   val AsClockOp = PrimOp("asClock")
 }
 
+
 abstract class Arg {
   def fullName(ctx: Component): String = name
   def name: String
+  def pprint: String
 }
 
 case class Node(id: HasId) extends Arg {
   override def fullName(ctx: Component): String = id.getRef.fullName(ctx)
   def name: String = id.getRef.name
+  def pprint = s"Node(${id.getRef.pprint})"
 }
 
 abstract class LitArg(val num: BigInt, widthArg: Width) extends Arg {
@@ -68,10 +71,12 @@ abstract class LitArg(val num: BigInt, widthArg: Width) extends Arg {
     require(widthArg.get >= minWidth,
       s"The literal value ${num} was elaborated with a specified width of ${widthArg.get} bits, but at least ${minWidth} bits are required.")
   }
+  def pprint = s"LitArg(${num}, ${widthArg})"
 }
 
 case class ILit(n: BigInt) extends Arg {
   def name: String = n.toString
+  def pprint =  s"ILit(${n})"
 }
 
 case class ULit(n: BigInt, w: Width) extends LitArg(n, w) {
@@ -97,18 +102,28 @@ case class FPLit(n: BigInt, w: Width, binaryPoint: BinaryPoint) extends LitArg(n
   def minWidth: Int = 1 + n.bitLength
 }
 
-case class Ref(name: String) extends Arg
+case class Ref(name: String) extends Arg {
+  def pprint = s"Ref(${name})"
+}
 case class ModuleIO(mod: Module, name: String) extends Arg {
   override def fullName(ctx: Component): String =
     if (mod eq ctx.id) name else s"${mod.getRef.name}.$name"
+  def pprint = s"ModuleIO(${mod.name}, ${name})"
 }
 case class Slot(imm: Node, name: String) extends Arg {
   override def fullName(ctx: Component): String =
-    if (imm.fullName(ctx).isEmpty) name else s"${imm.fullName(ctx)}.${name}"
+    s"${imm.fullName(ctx)}.${name}"
+  def pprint = s"Slot(${imm.pprint}, ${name})"
 }
 case class Index(imm: Arg, value: Arg) extends Arg {
   def name: String = s"[$value]"
   override def fullName(ctx: Component): String = s"${imm.fullName(ctx)}[${value.fullName(ctx)}]"
+  def pprint = s"Index(${imm.name}, ${value.name})"
+}
+case class BindIndex(imm: Arg) extends Arg {
+  def name: String = s"[_]"
+  override def fullName(ctx: Component): String = s"${imm.fullName(ctx)}[_]"
+  def pprint = s"Index(${imm.name}, _)"
 }
 
 sealed trait Bound
@@ -253,12 +268,13 @@ abstract class Definition extends Command {
 case class DefPrim[T <: Data](sourceInfo: SourceInfo, id: T, op: PrimOp, args: Arg*) extends Definition
 case class DefDeclass[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg, lbl: Label) extends Definition
 case class DefEndorse[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg, lbl: Label) extends Definition
+case class DefNext[T <: Data](sourceInfo: SourceInfo, id: T, arg: Arg) extends Definition
 case class DefInvalid(sourceInfo: SourceInfo, arg: Arg) extends Command
 case class DefWire(sourceInfo: SourceInfo, id: Data, lbl: Label) extends Definition
 case class DefReg(sourceInfo: SourceInfo, id: Data, clock: Arg, lbl: Label) extends Definition
 case class DefRegInit(sourceInfo: SourceInfo, id: Data, clock: Arg, reset: Arg, init: Arg, lbl: Label) extends Definition
-case class DefMemory(sourceInfo: SourceInfo, id: HasId, t: Data, size: Int, lbl: Label) extends Definition
-case class DefSeqMemory(sourceInfo: SourceInfo, id: HasId, t: Data, size: Int, lbl: Label) extends Definition
+case class DefMemory(sourceInfo: SourceInfo, id: HasId, t: Data, lbl: Label, size: Int) extends Definition
+case class DefSeqMemory(sourceInfo: SourceInfo, id: HasId, t: Data, lbl: Label, size: Int) extends Definition
 case class DefMemPort[T <: Data](sourceInfo: SourceInfo, id: T, source: Node, dir: MemPortDirection, index: Arg, clock: Arg) extends Definition
 case class DefInstance(sourceInfo: SourceInfo, id: Module, ports: Seq[Port]) extends Definition
 case class WhenBegin(sourceInfo: SourceInfo, pred: Arg) extends Command
@@ -273,6 +289,7 @@ abstract class Component extends Arg {
   def id: Module
   def name: String
   def ports: Seq[Port]
+  def pprint = s"Component(${id.name}, ${name}, ...)" 
 }
 case class DefModule(id: Module, name: String, ports: Seq[Port], commands: Seq[Command]) extends Component
 case class DefBlackBox(id: Module, name: String, ports: Seq[Port], params: Map[String, Param]) extends Component

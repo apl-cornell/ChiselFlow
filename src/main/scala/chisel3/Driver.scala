@@ -90,14 +90,14 @@ object Driver extends BackendCompilationUtilities {
     */
   def elaborate[T <: Module](gen: () => T): Circuit = internal.Builder.build(Module(gen()))
 
-  def emit[T <: Module](gen: () => T): String = Emitter.emit(elaborate(gen))
+  def emit[T <: Module](gen: () => T): String = Emitter.emit(elaborate(gen), false)
 
-  def emit[T <: Module](ir: Circuit): String = Emitter.emit(ir)
+  def emit[T <: Module](ir: Circuit): String = Emitter.emit(ir, false)
 
-  def dumpFirrtl(ir: Circuit, optName: Option[File]): File = {
+  def dumpFirrtl(ir: Circuit, optName: Option[File], onlyTop: Boolean = false): File = {
     val f = optName.getOrElse(new File(ir.name + ".fir"))
     val w = new FileWriter(f)
-    w.write(Emitter.emit(ir))
+    w.write(Emitter.emit(ir, onlyTop))
     w.close()
     f
   }
@@ -132,7 +132,7 @@ object Driver extends BackendCompilationUtilities {
     val chiselOptions = optionsManager.chiselOptions
 
     // use input because firrtl will be reading this
-    val firrtlString = Emitter.emit(circuit)
+    val firrtlString = Emitter.emit(circuit, chiselOptions.compileTopOnly)
     val firrtlFileName = firrtlOptions.getInputFileName(optionsManager)
     val firrtlFile = new File(firrtlFileName)
 

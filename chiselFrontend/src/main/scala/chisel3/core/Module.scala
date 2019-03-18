@@ -220,6 +220,13 @@ extends HasId {
 
     // All suggestions are in, force names to every node.
     _ids.foreach(_.forceName(default="_T", _namespace))
+    
+    _commands.foreach { _ match {
+      case cmd:  DefMemory => 
+        cmd.t.setRef(cmd.id.getRef)
+      case _ =>
+    }}
+
     _ids.foreach(_._onModuleClose)
     this
   }

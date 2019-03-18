@@ -66,6 +66,7 @@ trait InstanceId {
   def parentModName: String
 }
 
+
 private[chisel3] trait HasId extends InstanceId {
   private[chisel3] def _onModuleClose: Unit = {} // scalastyle:ignore method.name
   private[chisel3] val _parent: Option[Module] = Builder.currentModule
@@ -105,7 +106,15 @@ private[chisel3] trait HasId extends InstanceId {
   private[chisel3] def setRef(parent: HasId, name: String): Unit = setRef(Slot(Node(parent), name))
   private[chisel3] def setRef(parent: HasId, index: Int): Unit = setRef(Index(Node(parent), ILit(index)))
   private[chisel3] def setRef(parent: HasId, index: UInt): Unit = setRef(Index(Node(parent), index.ref))
+  private[chisel3] def setRefBinder(parent: HasId): Unit = setRef(BindIndex(Node(parent)))
+  // private[chisel3] def setRef(parent: HasId, names: Seq[String]): Unit = {
+  //   var newRef = Node(parent)
+  //   for(name <- names) {
+  //     newRef = Slot(Node(newRef), name)
+  //   }
+  // }
   private[chisel3] def getRef: Arg = _ref.get
+  private[chisel3] def refSet: Boolean = !_ref.isEmpty
 
   // Implementation of public methods.
   def instanceName: String = _parent match {
@@ -205,6 +214,12 @@ private[chisel3] object Builder {
   }
 
   def pushEndorse[T <: Data](cmd: DefEndorse[T]): T = {
+    // Bind each element of the returned Data to being a Op
+    Binding.bind(cmd.id, OpBinder(forcedModule), "Error: During op creation, fresh result")
+    pushCommand(cmd).id
+  }
+
+  def pushNext[ T <: Data](cmd: DefNext[T]): T = {
     // Bind each element of the returned Data to being a Op
     Binding.bind(cmd.id, OpBinder(forcedModule), "Error: During op creation, fresh result")
     pushCommand(cmd).id

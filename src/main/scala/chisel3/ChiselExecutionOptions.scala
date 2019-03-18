@@ -13,7 +13,8 @@ import firrtl.{ExecutionOptionsManager, ComposableOptions}
   * @note this extends FirrtlExecutionOptions which extends CommonOptions providing easy access to down chain options
   */
 case class ChiselExecutionOptions(
-                                   runFirrtlCompiler: Boolean = true
+                                   runFirrtlCompiler: Boolean = true,
+                                   compileTopOnly: Boolean = false
                                    // var runFirrtlAsProcess: Boolean = false
                                  ) extends ComposableOptions
 
@@ -30,5 +31,12 @@ trait HasChiselExecutionOptions {
       chiselOptions = chiselOptions.copy(runFirrtlCompiler = false)
     }
     .text("Stop after chisel emits chirrtl file")
+
+  parser.opt[Unit]("top-def-only")
+    .abbr("tdf")
+    .foreach { _ =>
+      chiselOptions = chiselOptions.copy(compileTopOnly = true)
+    }
+    .text("Only emit the def of the top-level module to support modular label-checking")
 }
 

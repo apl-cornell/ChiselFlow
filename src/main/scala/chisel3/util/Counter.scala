@@ -10,9 +10,9 @@ import chisel3._
   * @param n number of counts before the counter resets (or one more than the
   * maximum output value of the counter), need not be a power of two
   */
-class Counter(val n: Int) {
+class Counter(val n: Int, l: Label=UnknownLabel) {
   require(n >= 0)
-  val value = if (n > 1) Reg(init=0.U(log2Up(n).W)) else 0.U
+  val value = if (n > 1) Reg(init=0.U(log2Up(n).W), lbl = l) else 0.U
 
   /** Increment the counter, returning whether the counter currently is at the
     * maximum and will wrap. The incremented value is registered and will be
@@ -36,7 +36,7 @@ object Counter
 {
   /** Instantiate a [[Counter! counter]] with the specified number of counts.
     */
-  def apply(n: Int): Counter = new Counter(n)
+  def apply(n: Int, l: Label = UnknownLabel): Counter = new Counter(n, l)
 
   /** Instantiate a [[Counter! counter]] with the specified number of counts and a gate.
    *
