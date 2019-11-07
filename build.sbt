@@ -13,11 +13,11 @@ lazy val customUnidocSettings = unidocSettings ++ Seq (
   target in unidoc in ScalaUnidoc := crossTarget.value / "api"
 )
 
-val defaultVersions = Map("firrtl" -> "1.1-SNAPSHOT")
+val defaultVersions = Map("sirrtl" -> "0.2")
 
 lazy val commonSettings = Seq (
   organization := "edu.berkeley.cs",
-  version := "3.1-SNAPSHOT",
+  version := "3.1-FLOW",
   git.remoteRepo := "git@github.com:ucb-bar/chisel3.git",
   autoAPIMappings := true,
   scalaVersion := "2.11.7",
@@ -30,7 +30,7 @@ lazy val commonSettings = Seq (
   //  this has to be a Task setting.
   //  Fortunately, allDependencies is a Task Setting, so we can modify that.
   allDependencies := {
-    allDependencies.value ++ Seq("firrtl").collect {
+    allDependencies.value ++ Seq("sirrtl").collect {
       // If we have an unmanaged jar file on the classpath, assume we're to use that,
       case dep: String if !(unmanagedClasspath in Compile).value.toString.contains(s"$dep.jar") =>
         //  otherwise let sbt fetch the appropriate version.
